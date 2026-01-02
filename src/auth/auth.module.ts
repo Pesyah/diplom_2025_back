@@ -5,12 +5,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { jwtConstants } from './constants';
+import { UserRoleType } from './entities/user-roles.entity';
 import { Users } from './entities/users.entity';
 
 @Global()
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Users]),
+        TypeOrmModule.forFeature([Users, UserRoleType]),
         JwtModule.register({
             global: true,
             secret: jwtConstants.secret,
