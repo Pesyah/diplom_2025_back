@@ -3,9 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
-import { ILike, Not, Repository } from 'typeorm';
+import { ILike, IsNull, Not, Repository } from 'typeorm';
 import { jwtConstants } from './constants';
 import { RegisterDto } from './dto/login.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UserRoleType } from './entities/user-roles.entity';
 import { Users } from './entities/users.entity';
 
 @Injectable()
@@ -14,6 +16,8 @@ export class AuthService {
     constructor(
         @InjectRepository(Users)
         private readonly userRepository: Repository<Users>,
+        @InjectRepository(UserRoleType)
+        private readonly userRoleTypeRepository: Repository<UserRoleType>,
         @Inject(JwtService)
         private jwtService: JwtService,
         private readonly configService: ConfigService,
@@ -42,6 +46,9 @@ export class AuthService {
         newUser.name = name;
         newUser.surname = surname;
         newUser.phone = phone;
+        newUser.roleType = await this.userRoleTypeRepository.findOneByOrFail({
+            id: 1,
+        });
 
         await this.userRepository.save(newUser);
 
@@ -158,6 +165,36 @@ export class AuthService {
         return { message: 'ok' };
     }
 
+    async usersByQuery(query: string) {
+        return this.userRepository.find({
+            where: [
+                {
+                    email: query ? ILike(`%${query}%`) : Not(IsNull()),
+                    roleType: { id: 1 },
+                },
+                {
+                    phone: query ? ILike(`%${query}%`) : Not(IsNull()),
+                    roleType: { id: 1 },
+                },
+                {
+                    surname: query ? ILike(`%${query}%`) : Not(IsNull()),
+                    roleType: { id: 1 },
+                },
+                {
+                    name: query ? ILike(`%${query}%`) : Not(IsNull()),
+                    roleType: { id: 1 },
+                },
+            ],
+            relations: {
+                roleType: true,
+            },
+        });
+    }
+
+    async updateUser(user: Users, updateUserDto: UpdateUserDto) {
+        return this.userRepository.update({ id: user.id }, updateUserDto);
+    }
+
     async createAdmin(body: RegisterDto) {
         const existUser = await this.userRepository.findOneBy({
             email: body.email,
@@ -177,6 +214,9 @@ export class AuthService {
         newUser.name = body.name;
         newUser.surname = body.surname;
         newUser.phone = body.phone;
+        newUser.roleType = await this.userRoleTypeRepository.findOneByOrFail({
+            id: 2,
+        });
 
         return this.userRepository.save(newUser);
     }
@@ -186,16 +226,9 @@ export class AuthService {
             where: {
                 id: user.id,
             },
-        });
-    }
-
-    users(query?: string) {
-        return this.userRepository.findOne({
-            where: [
-                { email: query ? ILike(`%${query}%`) : Not('') },
-                { name: query ? ILike(`%${query}%`) : Not('') },
-                { surname: query ? ILike(`%${query}%`) : Not('') },
-            ],
+            relations: {
+                roleType: true,
+            },
         });
     }
 }
