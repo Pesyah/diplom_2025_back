@@ -1,9 +1,13 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { PizzaType } from './pizza-type.entity';
 
 @Entity()
 export class Pizza {
     @PrimaryGeneratedColumn('uuid')
     id: string;
+
+    @ManyToOne(() => PizzaType)
+    pizzaType: PizzaType;
 
     @Column()
     name: string;
@@ -25,4 +29,7 @@ export class Pizza {
 
     @Column()
     kilocalories: number;
+
+    @Column()
+    kilojoules: number;
 }
