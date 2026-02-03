@@ -13,6 +13,7 @@ import { Users } from './entities/users.entity';
 @Injectable()
 export class AuthService {
     private readonly salt = 12;
+
     constructor(
         @InjectRepository(Users)
         private readonly userRepository: Repository<Users>,

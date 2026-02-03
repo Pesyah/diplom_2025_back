@@ -3,17 +3,16 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule);
 
-  // Swagger виден только если это не прод
-  const config = new DocumentBuilder()
-    .setTitle('Diplom')
-    .setDescription('something about books')
-    .setVersion('1.0')
-    .addTag('books')
-    .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, documentFactory);
-  await app.listen(process.env.PORT ?? 3000);
+    // Swagger виден только если это не прод
+    const config = new DocumentBuilder()
+        .setTitle('Diplom')
+        .setDescription('something about studenti')
+        .setVersion('1.0')
+        .build();
+    const documentFactory = () => SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, documentFactory);
+    await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
