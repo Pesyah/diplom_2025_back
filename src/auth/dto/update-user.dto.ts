@@ -12,11 +12,5 @@ export class UpdateUserDto {
     @IsOptional()
     @IsNotEmpty()
     @IsString()
-    surname: string;
-
-    @ApiProperty()
-    @IsOptional()
-    @IsNotEmpty()
-    @IsString()
     phone: string;
 }

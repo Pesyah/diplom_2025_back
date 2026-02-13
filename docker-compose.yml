@@ -1,15 +1,15 @@
 services:
-  postgres-diplom-pizza:
-    image: postgres:15
-    container_name: postgres-diplom-pizza-db
-    environment:
-      POSTGRES_DB: diplom_pizza
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - '5432:5432'
-    volumes:
-      - postgres_diplom_pizza_data:/var/lib/postgresql/data
+    postgres-diplom-coffee:
+        image: postgres:15
+        container_name: postgres-diplom-coffee-db
+        environment:
+            POSTGRES_DB: diplom_coffee
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+        ports:
+            - '5432:5432'
+        volumes:
+            - postgres_diplom_coffee_data:/var/lib/postgresql/data
 
 volumes:
-  postgres_diplom_pizza_data:
+    postgres_diplom_coffee_data:

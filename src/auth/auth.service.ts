@@ -23,13 +23,7 @@ export class AuthService {
         private readonly configService: ConfigService,
     ) {}
 
-    async signOn(
-        name: string,
-        surname: string,
-        email: string,
-        password: string,
-        phone: string,
-    ) {
+    async signOn(name: string, email: string, password: string, phone: string) {
         const existUser = await this.userRepository.findOneBy({ email });
 
         if (existUser) {
@@ -44,7 +38,6 @@ export class AuthService {
         newUser.email = email;
         newUser.password = hashPassword;
         newUser.name = name;
-        newUser.surname = surname;
         newUser.phone = phone;
         newUser.roleType = await this.userRoleTypeRepository.findOneByOrFail({
             id: 1,
@@ -177,10 +170,6 @@ export class AuthService {
                     roleType: { id: 1 },
                 },
                 {
-                    surname: query ? ILike(`%${query}%`) : Not(IsNull()),
-                    roleType: { id: 1 },
-                },
-                {
                     name: query ? ILike(`%${query}%`) : Not(IsNull()),
                     roleType: { id: 1 },
                 },
@@ -212,7 +201,6 @@ export class AuthService {
         newUser.email = body.email;
         newUser.password = hashPassword;
         newUser.name = body.name;
-        newUser.surname = body.surname;
         newUser.phone = body.phone;
         newUser.roleType = await this.userRoleTypeRepository.findOneByOrFail({
             id: 2,

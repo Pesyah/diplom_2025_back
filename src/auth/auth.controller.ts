@@ -37,7 +37,6 @@ export class AuthController {
     async register(@Body() body: RegisterDto) {
         return this.authService.signOn(
             body.name,
-            body.surname,
             body.email,
             body.password,
             body.phone,
