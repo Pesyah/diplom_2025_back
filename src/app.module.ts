@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
-import { OrdersModule } from './orders/orders.module';
-import { PizzaModule } from './pizza/pizza.module';
+import { ReservationsModule } from './reservations/reservations.module';
+import { RoomsModule } from './rooms/rooms.module';
 import { SeedModule } from './seed/seed.module';
 import { UserRoleModule } from './userRole/userRole.module';
 
@@ -21,7 +21,7 @@ import { UserRoleModule } from './userRole/userRole.module';
                 port: 5432,
                 username: 'postgres',
                 password: 'postgres',
-                database: 'diplom_pizza',
+                database: 'diplom_otel',
                 entities: [__dirname + '/**/entities/**/*.entity.{ts,js}'],
                 synchronize: true,
             }),
@@ -30,8 +30,8 @@ import { UserRoleModule } from './userRole/userRole.module';
         AuthModule,
         SeedModule,
         UserRoleModule,
-        PizzaModule,
-        OrdersModule,
+        RoomsModule,
+        ReservationsModule,
     ],
 })
 export class AppModule {}

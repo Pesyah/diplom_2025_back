@@ -1,13 +1,13 @@
 import { Column, Entity, PrimaryColumn } from 'typeorm';
 
 @Entity()
-export class PizzaAdditive {
+export class RoomsType {
     @PrimaryColumn()
-    id: string;
+    id: number;
 
     @Column()
     name: string;
 
-    @Column()
-    avatar: string;
+    @Column('text', { nullable: true })
+    description: string;
 }
