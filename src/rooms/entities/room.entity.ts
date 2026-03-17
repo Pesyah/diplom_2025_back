@@ -1,12 +1,16 @@
 import {
     Column,
     CreateDateColumn,
+    DeleteDateColumn,
     Entity,
     JoinColumn,
+    JoinTable,
+    ManyToMany,
     ManyToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from 'typeorm';
+import { Amenities } from './amenities.entity';
 import { RoomsStatus } from './room-status.entity';
 import { RoomsType } from './room-type.entity';
 
@@ -41,18 +45,9 @@ export class Rooms {
     @Column('text', { nullable: true })
     description: string;
 
-    // TODO подумаем
-    // @Column('simple-array', { nullable: true })
-    // amenities: string[];
-
-    @Column({ default: 0 })
-    size: number;
-
-    @Column({ default: false })
-    hasBalcony: boolean;
-
-    @Column({ default: false })
-    beautifulView: boolean;
+    @ManyToMany(() => Amenities)
+    @JoinTable({name: "rooms_and_amenities"})
+    amenities: Amenities[];
 
     @Column('simple-array', { nullable: true })
     photos: string[];
@@ -62,4 +57,7 @@ export class Rooms {
 
     @UpdateDateColumn()
     updatedAt: Date;
+
+    @DeleteDateColumn()
+    deleted_at!: Date;
 }
