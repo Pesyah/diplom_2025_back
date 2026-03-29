@@ -1,9 +1,12 @@
+// order-part.entity.ts
 import { PizzaAdditiveRelation } from 'src/pizza/entities/pizza-additive-relations.entity';
 import { PizzaSizeRelation } from 'src/pizza/entities/pizza-size-relations.entity';
 import {
     Column,
     Entity,
     JoinColumn,
+    JoinTable,
+    ManyToMany,
     ManyToOne,
     PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -14,15 +17,13 @@ export class OrdersParts {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    // нет смысла в привязке к юзеру т.к. есть привязка к заказу,
-    // где есть пользователь, упрощаем логику
     @ManyToOne(() => Orders)
     @JoinColumn()
     orders: Orders;
 
-    @ManyToOne(() => PizzaAdditiveRelation)
-    @JoinColumn()
-    pizzaAdditiveRelation: PizzaAdditiveRelation;
+    @ManyToMany(() => PizzaAdditiveRelation)
+    @JoinTable({ name: 'orders_parts_pizza_additive_relations' })
+    pizzaAdditiveRelations: PizzaAdditiveRelation[];
 
     @ManyToOne(() => PizzaSizeRelation)
     @JoinColumn()
@@ -30,4 +31,7 @@ export class OrdersParts {
 
     @Column()
     count: number;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2 })
+    priceAtTime: number;
 }

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
+import { DocumentsModule } from './documents/documents.module';
 import { OrdersModule } from './orders/orders.module';
 import { PizzaModule } from './pizza/pizza.module';
 import { SeedModule } from './seed/seed.module';
@@ -32,6 +33,7 @@ import { UserRoleModule } from './userRole/userRole.module';
         UserRoleModule,
         PizzaModule,
         OrdersModule,
+        DocumentsModule,
     ],
 })
 export class AppModule {}

@@ -47,3 +47,23 @@ export class CreatePizzaDto {
     @IsNumber()
     kilojoules: number;
 }
+
+// update-pizza-size.dto.ts
+import { CreatePizzaAdditiveRelationDto } from './create-pizza-additive-relation.dto';
+import { CreatePizzaAdditiveDto } from './create-pizza-additive.dto';
+import { CreatePizzaSizeRelationDto } from './create-pizza-size-relation.dto';
+import { CreatePizzaSizeDto } from './create-pizza-size.dto';
+
+export class UpdatePizzaSizeDto extends CreatePizzaSizeDto {}
+
+// update-pizza-size-relation.dto.ts
+
+export class UpdatePizzaSizeRelationDto extends CreatePizzaSizeRelationDto {}
+
+// update-pizza-additive.dto.ts
+
+export class UpdatePizzaAdditiveDto extends CreatePizzaAdditiveDto {}
+
+// update-pizza-additive-relation.dto.ts
+
+export class UpdatePizzaAdditiveRelationDto extends CreatePizzaAdditiveRelationDto {}

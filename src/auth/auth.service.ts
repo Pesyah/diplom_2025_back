@@ -52,7 +52,11 @@ export class AuthService {
 
         await this.userRepository.save(newUser);
 
-        const payload = { id: newUser.id, email: newUser.email };
+        const payload = {
+            id: newUser.id,
+            email: newUser.email,
+            role: newUser.roleType.name,
+        };
         return {
             access_token: await this.jwtService.signAsync(payload, {
                 secret: jwtConstants.secret,
@@ -104,6 +108,13 @@ export class AuthService {
                 id: true,
                 password: true,
                 email: true,
+                roleType: {
+                    id: true,
+                    name: true,
+                },
+            },
+            relations: {
+                roleType: true,
             },
         });
 
@@ -122,7 +133,11 @@ export class AuthService {
                 HttpStatus.FORBIDDEN,
             );
         }
-        const payload = { id: user.id, email: user.email };
+        const payload = {
+            id: user.id,
+            email: user.email,
+            role: user.roleType.name,
+        };
         return {
             access_token: await this.jwtService.signAsync(payload, {
                 secret: jwtConstants.secret,

@@ -7,6 +7,8 @@ import { PizzaSizeRelation } from './entities/pizza-size-relations.entity';
 import { PizzaSize } from './entities/pizza-size.entity';
 import { PizzaType } from './entities/pizza-type.entity';
 import { Pizza } from './entities/pizza.entity';
+import { PizzaAdminController } from './pizza-admin.controller';
+import { PizzaAdminService } from './pizza-admin.service';
 import { PizzaController } from './pizza.controller';
 import { PizzaService } from './pizza.service';
 
@@ -22,7 +24,7 @@ import { PizzaService } from './pizza.service';
             Users,
         ]),
     ],
-    controllers: [PizzaController],
-    providers: [PizzaService],
+    controllers: [PizzaController, PizzaAdminController],
+    providers: [PizzaService, PizzaAdminService],
 })
 export class PizzaModule {}

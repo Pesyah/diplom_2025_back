@@ -3,8 +3,10 @@ import {
     Entity,
     JoinColumn,
     ManyToOne,
+    OneToMany,
     PrimaryGeneratedColumn,
 } from 'typeorm';
+import { PizzaAdditiveRelation } from './pizza-additive-relations.entity';
 import { PizzaSize } from './pizza-size.entity';
 import { Pizza } from './pizza.entity';
 
@@ -20,6 +22,12 @@ export class PizzaSizeRelation {
     @ManyToOne(() => PizzaSize)
     @JoinColumn()
     pizzaSize: PizzaSize;
+
+    @OneToMany(
+        () => PizzaAdditiveRelation,
+        (pizzaAdditiveRelation) => pizzaAdditiveRelation.pizzaSizeRelation,
+    )
+    pizzaAdditiveRelation: PizzaAdditiveRelation;
 
     @Column()
     price: number;

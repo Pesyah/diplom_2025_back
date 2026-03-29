@@ -1,4 +1,12 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+    Column,
+    Entity,
+    JoinColumn,
+    ManyToOne,
+    OneToMany,
+    PrimaryGeneratedColumn,
+} from 'typeorm';
+import { PizzaSizeRelation } from './pizza-size-relations.entity';
 import { PizzaType } from './pizza-type.entity';
 
 @Entity()
@@ -7,7 +15,14 @@ export class Pizza {
     id: string;
 
     @ManyToOne(() => PizzaType)
+    @JoinColumn()
     pizzaType: PizzaType;
+
+    @OneToMany(
+        () => PizzaSizeRelation,
+        (pizzaSizeRelation) => pizzaSizeRelation.pizza,
+    )
+    pizzaSizeRelation: PizzaSizeRelation;
 
     @Column()
     name: string;

@@ -1,10 +1,13 @@
+// order.entity.ts
 import { Users } from 'src/auth/entities/users.entity';
 import {
+    CreateDateColumn,
     Entity,
     JoinColumn,
     ManyToOne,
     OneToMany,
     PrimaryGeneratedColumn,
+    UpdateDateColumn,
 } from 'typeorm';
 import { OrdersParts } from './order-part.entity';
 import { OrderStatus } from './order-status.entity';
@@ -18,10 +21,18 @@ export class Orders {
     @JoinColumn()
     users: Users;
 
-    @OneToMany(() => OrdersParts, (ordersParts) => ordersParts.orders)
+    @OneToMany(() => OrdersParts, (ordersParts) => ordersParts.orders, {
+        cascade: true,
+    })
     ordersParts: OrdersParts[];
 
     @ManyToOne(() => OrderStatus)
     @JoinColumn()
     orderStatus: OrderStatus;
+
+    @CreateDateColumn()
+    createdAt: Date;
+
+    @UpdateDateColumn()
+    updatedAt: Date;
 }

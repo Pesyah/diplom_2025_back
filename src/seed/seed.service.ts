@@ -63,19 +63,22 @@ export class SeedService {
     }
 
     async orderStatus() {
-        await this.orderStatusRepository.save([
-            this.orderStatusRepository.create({
-                id: 1,
-                name: 'Создан',
-            }),
-            this.orderStatusRepository.create({
-                id: 2,
-                name: 'Готовим',
-            }),
-            this.orderStatusRepository.create({
-                id: 3,
-                name: 'Готов к выдаче',
-            }),
-        ]);
+        const statuses = [
+            { id: 1, name: 'Ожидает подтверждения' },
+            { id: 2, name: 'Подтвержден' },
+            { id: 3, name: 'Готовится' },
+            { id: 4, name: 'Готов к выдаче' },
+            { id: 5, name: 'Выдан' },
+            { id: 6, name: 'Отменен' },
+        ];
+
+        for (const status of statuses) {
+            const existing = await this.orderStatusRepository.findOneBy({
+                id: status.id,
+            });
+            if (!existing) {
+                await this.orderStatusRepository.save(status);
+            }
+        }
     }
 }
