@@ -6,22 +6,12 @@ import { AppModule } from './app.module';
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
 
-    app.enableCors({
-        origin: [
-            'http://localhost:8080', // Vue CLI стандартный порт
-            'http://localhost:8081', // Альтернативный порт
-            'http://127.0.0.1:8080',
-            'http://127.0.0.1:8081',
-        ],
-        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-        credentials: true, // Если используете cookies/авторизацию
-    });
+    app.enableCors({ origin: true });
 
     app.useGlobalPipes(
         new ValidationPipe({
             whitelist: true, // Удаляет все неописанные поля
-            forbidNonWhitelisted: true, // Выбрасывает ошибку для неизвестных полей
+            forbidNonWhitelisted: false, // Выбрасывает ошибку для неизвестных полей
             transform: true,
             transformOptions: {
                 exposeUnsetFields: false,
@@ -47,6 +37,6 @@ async function bootstrap() {
         .build();
     const documentFactory = () => SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api', app, documentFactory);
-    await app.listen(process.env.PORT ?? 3001);
+    await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

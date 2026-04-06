@@ -1,6 +1,5 @@
 import {
     BadRequestException,
-    ForbiddenException,
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
@@ -70,7 +69,7 @@ export class DocumentsService {
         return { items, total };
     }
 
-    async findOne(id: string, userId: string): Promise<Document> {
+    async findOne(id: string): Promise<Document> {
         const document = await this.documentRepository.findOne({
             where: { id },
             relations: ['users'],
@@ -80,15 +79,11 @@ export class DocumentsService {
             throw new NotFoundException('Документ не найден');
         }
 
-        if (document.users.id !== userId) {
-            throw new ForbiddenException('Нет доступа к этому документу');
-        }
-
         return document;
     }
 
     async remove(id: string, userId: string): Promise<void> {
-        const document = await this.findOne(id, userId);
+        const document = await this.findOne(id);
 
         try {
             await fs.unlink(document.path);

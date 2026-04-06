@@ -22,7 +22,7 @@ export class Orders {
     users: Users;
 
     @OneToMany(() => OrdersParts, (ordersParts) => ordersParts.orders, {
-        cascade: true,
+        onDelete: 'CASCADE',
     })
     ordersParts: OrdersParts[];
 

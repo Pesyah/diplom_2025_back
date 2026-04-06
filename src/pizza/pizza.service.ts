@@ -38,4 +38,19 @@ export class PizzaService {
             },
         });
     }
+
+    async getPizzaById(id: string) {
+        return this.pizzaRepository.findOne({
+            where: { id },
+            relations: {
+                pizzaType: true,
+                pizzaSizeRelation: {
+                    pizzaSize: true,
+                    pizzaAdditiveRelation: {
+                        pizzaAdditive: true,
+                    },
+                },
+            },
+        });
+    }
 }

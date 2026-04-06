@@ -28,6 +28,10 @@ export class OrdersService {
         private readonly usersRepository: Repository<Users>,
     ) {}
 
+    async allRelations() {
+        return { orderStatus: await this.orderStatusRepository.find() };
+    }
+
     async createOrder(createOrderDto: CreateOrderDto, userId: string) {
         // 1. Проверяем пользователя
         const user = await this.usersRepository.findOneBy({ id: userId });

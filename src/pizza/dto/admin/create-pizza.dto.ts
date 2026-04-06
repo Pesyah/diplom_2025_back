@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreatePizzaDto {
     @ApiProperty({ example: 1 })
@@ -46,6 +46,12 @@ export class CreatePizzaDto {
     @IsNotEmpty()
     @IsNumber()
     kilojoules: number;
+
+    @ApiProperty({ example: 1 })
+    @IsOptional()
+    @IsNotEmpty()
+    @IsString()
+    photo?: string;
 }
 
 // update-pizza-size.dto.ts

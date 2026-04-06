@@ -33,18 +33,21 @@ export class Pizza {
     @Column()
     structure: string;
 
-    @Column()
+    @Column('decimal', { precision: 4, scale: 2, nullable: true })
     proteins: number;
 
-    @Column()
+    @Column('decimal', { precision: 4, scale: 2, nullable: true })
     fats: number;
 
-    @Column()
+    @Column('decimal', { precision: 4, scale: 2, nullable: true })
     carbohydrates: number;
 
-    @Column()
+    @Column('decimal', { precision: 4, scale: 2, nullable: true })
     kilocalories: number;
 
-    @Column()
+    @Column('decimal', { precision: 8, scale: 2, nullable: true })
     kilojoules: number;
+
+    @Column({ default: 'uploads/default-pizza.png' })
+    photo: string;
 }

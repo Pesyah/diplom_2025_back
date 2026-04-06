@@ -26,6 +26,11 @@ import { OrdersService } from './orders.service';
 export class OrdersController {
     constructor(private readonly ordersService: OrdersService) {}
 
+    @Get('all-relations')
+    async allRelations() {
+        return this.ordersService.allRelations();
+    }
+
     @Post()
     async createOrder(@Req() req, @Body() createOrderDto: CreateOrderDto) {
         return this.ordersService.createOrder(createOrderDto, req.user.id);

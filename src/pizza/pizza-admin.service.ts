@@ -42,8 +42,13 @@ export class PizzaAdminService {
             pizza: await this.pizzaRepository.find(),
             pizzaType: await this.pizzaTypeRepository.find(),
             pizzaSize: await this.pizzaSizeRepository.find(),
-            pizzaSizeRelation: await this.pizzaSizeRelationRepository.find(),
-            pizzaAdditive: await this.pizzaAdditiveRepository.find(),
+            pizzaSizeRelation: await this.pizzaSizeRelationRepository.find({
+                relations: {
+                    pizza: true,
+                    pizzaSize: true,
+                },
+            }),
+            pizzaAdditive: await this.pizzaAdditiveRepository.find({}),
             pizzaAdditiveRelation:
                 await this.pizzaAdditiveRelationRepository.find(),
         };
@@ -68,7 +73,7 @@ export class PizzaAdminService {
 
     async createPizzaAdditive(createPizzaAdditiveDto: CreatePizzaAdditiveDto) {
         const existAdditive = await this.pizzaAdditiveRepository.findOneBy({
-            name: ILike(`%${createPizzaAdditiveDto.name}%`),
+            name: createPizzaAdditiveDto.name,
         });
         if (existAdditive)
             throw new HttpException(
@@ -412,7 +417,10 @@ export class PizzaAdminService {
     // ==================== PIZZA ADDITIVE RELATION CRUD ====================
     async getAllPizzaAdditiveRelations() {
         return this.pizzaAdditiveRelationRepository.find({
-            relations: ['pizzaSizeRelation', 'pizzaAdditive'],
+            relations: {
+                pizzaAdditive: true,
+                pizzaSizeRelation: { pizza: true, pizzaSize: true },
+            },
         });
     }
 
