@@ -27,17 +27,20 @@ export class Alerts {
     @Column({ type: 'text' })
     description: string;
 
+    @Column('text', { array: true, default: [] })
+    documents: string[];
+
     @ManyToOne(() => Faculty)
     @JoinColumn()
-    faculty: Faculty;
+    faculty: Faculty | null;
 
     @ManyToOne(() => Department)
     @JoinColumn()
-    department: Department;
+    department: Department | null;
 
     @ManyToOne(() => Groups)
     @JoinColumn()
-    groups: Groups;
+    groups: Groups | null;
 
     @ManyToOne(() => Users)
     @JoinColumn()

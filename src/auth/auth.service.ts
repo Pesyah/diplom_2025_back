@@ -229,6 +229,7 @@ export class AuthService {
             },
             relations: {
                 roleType: true,
+                group: true,
             },
         });
     }

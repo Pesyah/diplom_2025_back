@@ -7,4 +7,7 @@ export class Faculty {
 
     @Column()
     name: string;
+
+    @Column()
+    shortName: string;
 }

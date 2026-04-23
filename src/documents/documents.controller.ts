@@ -1,0 +1,61 @@
+import {
+    BadRequestException,
+    Controller,
+    Get,
+    NotFoundException,
+    Param,
+    Post,
+    Res,
+    UploadedFile,
+    UseGuards,
+    UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBody, ApiConsumes, ApiSecurity } from '@nestjs/swagger';
+import type { Response } from 'express';
+import * as fs from 'fs';
+import { join } from 'path';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { GetUser } from 'src/auth/decorators/get-user.decorator';
+import { Users } from '../auth/entities/users.entity';
+import { DocumentsService } from './documents.service';
+import { FileRequeryDto } from './dto/create-document.dto';
+
+@ApiSecurity('X-AUTH-TOKEN')
+@Controller('documents')
+export class DocumentsController {
+    constructor(private readonly documentsService: DocumentsService) {}
+
+    @UseGuards(AuthGuard)
+    @Post('upload')
+    @ApiBody({ type: FileRequeryDto })
+    @ApiConsumes('multipart/form-data')
+    @UseInterceptors(
+        FileInterceptor('file', {
+            limits: { fileSize: 10 * 1024 * 1024 },
+        }),
+    )
+    async uploadFile(
+        @UploadedFile() file: Express.Multer.File,
+        @GetUser() user: Users,
+    ) {
+        if (!file) {
+            throw new BadRequestException('Файл не загружен');
+        }
+        return this.documentsService.create(file, user.id);
+    }
+
+    @Get('download/:filename')
+    downloadFile(
+        @Param('filename') filename: string,
+        @Res() res: Response,
+    ): void {
+        const filePath = join(process.cwd(), 'uploads', 'documents', filename);
+
+        if (!fs.existsSync(filePath)) {
+            throw new NotFoundException('Файл не найден');
+        }
+
+        res.download(filePath, filename);
+    }
+}

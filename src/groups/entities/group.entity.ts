@@ -27,7 +27,7 @@ export class Groups {
     // запишем старосту, чтобы он тоже мог делать объявления
     @ManyToOne(() => Users)
     @JoinColumn()
-    groupLeader: Users;
+    groupLeader: Users | null;
 
     @OneToMany(() => Users, (user) => user.group)
     groupMembers: Users;

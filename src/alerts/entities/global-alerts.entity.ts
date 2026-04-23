@@ -21,6 +21,9 @@ export class GlobalAlerts {
     @Column({ type: 'text' })
     description: string;
 
+    @Column('text', { array: true, default: [] })
+    documents: string[];
+
     @ManyToOne(() => Users)
     @JoinColumn()
     initiator: Users;

@@ -1,8 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { join } from 'path';
 import { AlertsModule } from './alerts/alerts.module';
+import { AuthModule } from './auth/auth.module';
+import { DocumentsModule } from './documents/documents.module';
 import { GroupsModule } from './groups/groups.module';
+import { SeedModule } from './seed/seed.module';
+import { UserRoleModule } from './userRole/userRole.module';
 
 @Module({
     imports: [
@@ -21,12 +27,19 @@ import { GroupsModule } from './groups/groups.module';
                 database: 'diplom_studenti',
                 entities: [__dirname + '/**/entities/**/*.entity.{ts,js}'],
                 synchronize: true,
-                logging: true,
             }),
             inject: [ConfigService],
         }),
+        ServeStaticModule.forRoot({
+            rootPath: join(__dirname, '..', 'uploads'),
+            serveRoot: '/uploads', // URL путь
+        }),
+        SeedModule,
+        AuthModule,
+        UserRoleModule,
         GroupsModule,
         AlertsModule,
+        DocumentsModule,
     ],
 })
 export class AppModule {}

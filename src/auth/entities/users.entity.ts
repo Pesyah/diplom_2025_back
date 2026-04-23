@@ -1,4 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Department } from 'src/groups/entities/department.entity';
+import { Faculty } from 'src/groups/entities/faculty.entity';
 import { Groups } from 'src/groups/entities/group.entity';
 import {
     Column,
@@ -16,9 +18,20 @@ export class Users {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @ManyToOne(() => Groups)
+    @ManyToOne(() => Groups, { nullable: true })
     @JoinColumn()
-    group: Groups;
+    group: Groups | null;
+
+    @ManyToOne(() => Department, { nullable: true })
+    @JoinColumn()
+    department: Department | null;
+
+    @ManyToOne(() => Faculty, { nullable: true })
+    @JoinColumn()
+    faculty: Faculty | null;
+
+    @Column({ default: false })
+    isElder: boolean;
 
     @Column({ select: false })
     password: string;
