@@ -1,26 +1,23 @@
 import { Injectable } from '@nestjs/common';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { ILike, Repository } from 'typeorm';
+import { Producers } from './entities/producers.entity';
+import { ProductsCategory } from './entities/products-category.entity';
+import { Products } from './entities/products.entity';
 
 @Injectable()
 export class ProductsService {
-  create(createProductDto: CreateProductDto) {
-    return 'This action adds a new product';
-  }
-
-  findAll() {
-    return `This action returns all products`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} product`;
-  }
-
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} product`;
-  }
+    constructor(
+        @InjectRepository(Producers)
+        private readonly producersRepository: Repository<Producers>,
+        @InjectRepository(Products)
+        private readonly productsRepository: Repository<Products>,
+        @InjectRepository(ProductsCategory)
+        private readonly productsCategoryRepository: Repository<ProductsCategory>,
+    ) {}
+    async brands(query: string) {
+        return await this.producersRepository.find({
+            where: { name: ILike(`%${query}%`) },
+        });
+    }
 }

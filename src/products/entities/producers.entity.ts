@@ -10,4 +10,7 @@ export class Producers {
 
     @Column({ type: 'text' })
     description: string;
+
+    @Column()
+    avatar: string;
 }
