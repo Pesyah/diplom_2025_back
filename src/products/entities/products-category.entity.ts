@@ -8,6 +8,9 @@ export class ProductsCategory {
     @Column()
     name: string;
 
+    @Column()
+    avatar: string;
+
     @Column({ type: 'text' })
     description: string;
 }
