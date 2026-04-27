@@ -1,18 +1,73 @@
-import { Controller } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Param,
+    ParseIntPipe,
+    ParseUUIDPipe,
+    Query,
+} from '@nestjs/common';
+import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { GetProductsByQueryDto } from './dto/get-products-by-query.dto';
 import { ProductsService } from './products.service';
 
+@ApiTags('products')
 @Controller('products')
 export class ProductsController {
     constructor(private readonly productsService: ProductsService) {}
-    // TODO поиск бренда, обязательно(страница бренда с типами продуктов)
-    // обычный поиск по названию модели
-    // поиск но названия внутри бренда(что-то типа страницы как на dns)
-    // по id обычный запрос
-    // все выше для юзеров
 
-    // TODO админ - отдельно запросы брендов их редактирование и создание
-    // запросы продуктов по названиям по id и редактирование их(так же установить бренд\тип)
-    // id для патч запросов передается только в бади, не передаем в param
+    @Get('all-relations')
+    @ApiOperation({ summary: 'Получить справочники (бренды и категории)' })
+    allRelations() {
+        return this.productsService.allRelations();
+    }
 
-    // TODO все апи по RESTFUL делаем, четко прописываем DTO с примерами
+    @Get('by-id/:id')
+    @ApiOperation({ summary: 'Получить продукт по id' })
+    findProductById(@Param('id', ParseUUIDPipe) id: string) {
+        return this.productsService.findProductById(id);
+    }
+
+    @Get('by-query')
+    @ApiOperation({ summary: 'Поиск продуктов с фильтрами и пагинацией' })
+    findProductsByQuery(@Query() dto: GetProductsByQueryDto) {
+        return this.productsService.findProductsByQuery(dto);
+    }
+
+    @Get('brands/:brandId')
+    @ApiOperation({ summary: 'Страница бренда с категориями и продуктами' })
+    @ApiQuery({ name: 'search', required: false })
+    @ApiQuery({ name: 'page', required: false })
+    @ApiQuery({ name: 'limit', required: false })
+    findBrandWithProducts(
+        @Param('brandId', ParseIntPipe) brandId: number,
+        @Query('search') search?: string,
+        @Query('page') page?: number,
+        @Query('limit') limit?: number,
+    ) {
+        return this.productsService.findBrandWithProducts(
+            brandId,
+            search,
+            page || 1,
+            limit || 20,
+        );
+    }
+
+    @Get('brands/:brandId/by-query')
+    @ApiOperation({ summary: 'Поиск продуктов внутри бренда' })
+    @ApiQuery({ name: 'search', required: false })
+    @ApiQuery({ name: 'page', required: false })
+    @ApiQuery({ name: 'limit', required: false })
+    findProductsInBrand(
+        @Param('brandId', ParseIntPipe) brandId: number,
+        @Query('search') search?: string,
+        @Query('page') page?: number,
+        @Query('limit') limit?: number,
+    ) {
+        return this.productsService.findBrandWithProducts(
+            brandId,
+            search,
+            page || 1,
+            limit || 20,
+        );
+    }
 }

@@ -35,6 +35,9 @@ export class Orders {
     @Column({ type: 'text', nullable: true })
     notes: string;
 
+    @Column({ type: 'text', nullable: true })
+    rejectMessage: string;
+
     @Column({ type: 'timestamp', nullable: true })
     finishAt: Date;
 

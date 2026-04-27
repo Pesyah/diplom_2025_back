@@ -1,34 +1,84 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { OrdersService } from './orders.service';
-import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Patch,
+    Post,
+    UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { GetUser } from 'src/auth/decorators/get-user.decorator';
 
+import { AuthGuard } from 'src/auth/auth.guard';
+import { Roles } from 'src/auth/decorators/role.decorator';
+import { Users } from 'src/auth/entities/users.entity';
+import { RolesGuard } from 'src/auth/guard/rolesGuard';
+import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { OrdersService } from './orders.service';
+
+@ApiTags('Orders')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+    constructor(private readonly ordersService: OrdersService) {}
 
-  @Post()
-  create(@Body() createOrderDto: CreateOrderDto) {
-    return this.ordersService.create(createOrderDto);
-  }
+    // USER ROUTES
+    @Get('my')
+    @ApiOperation({ summary: 'Получить заказы текущего пользователя' })
+    async getMyOrders(@GetUser() user: Users) {
+        return this.ordersService.getUserOrders(user.id);
+    }
 
-  @Get()
-  findAll() {
-    return this.ordersService.findAll();
-  }
+    @Get('by-id/:id')
+    @ApiOperation({ summary: 'Получить заказ по ID (только свои заказы)' })
+    async getMyOrderById(@Param('id') id: string, @GetUser() user: Users) {
+        return this.ordersService.getUserOrderById(id, user.id);
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.ordersService.findOne(+id);
-  }
+    @Post()
+    @ApiOperation({ summary: 'Создать новый заказ' })
+    async createOrder(@Body() dto: CreateOrderDto, @GetUser() user: Users) {
+        return this.ordersService.createOrder(user.id, dto);
+    }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
-    return this.ordersService.update(+id, updateOrderDto);
-  }
+    // ADMIN ROUTES
+    @Get()
+    @UseGuards(RolesGuard)
+    @Roles('admin')
+    @ApiOperation({ summary: '(Admin) Получить все заказы' })
+    async getAllOrders() {
+        return this.ordersService.getAllOrders();
+    }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.ordersService.remove(+id);
-  }
+    @Get('by-id/:id')
+    @UseGuards(RolesGuard)
+    @Roles('admin')
+    @ApiOperation({ summary: '(Admin) Получить заказ по ID' })
+    async getOrderById(@Param('id') id: string) {
+        return this.ordersService.getOrderById(id);
+    }
+
+    @Patch('by-id/:id/status')
+    @UseGuards(RolesGuard)
+    @Roles('admin')
+    @ApiOperation({ summary: '(Admin) Изменить статус заказа' })
+    async updateOrderStatus(
+        @Param('id') id: string,
+        @Body() dto: UpdateOrderStatusDto,
+    ) {
+        return this.ordersService.updateOrderStatus(id, dto);
+    }
+
+    @Delete('by-id/:id')
+    @UseGuards(RolesGuard)
+    @Roles('admin')
+    @ApiOperation({ summary: '(Admin) Удалить заказ' })
+    async deleteOrder(@Param('id') id: string) {
+        await this.ordersService.deleteOrder(id);
+        return { message: 'Заказ успешно удалён' };
+    }
 }

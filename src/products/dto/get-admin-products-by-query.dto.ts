@@ -1,0 +1,32 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { Transform, Type } from 'class-transformer';
+import { IsArray, IsInt, IsOptional } from 'class-validator';
+import { BaseSearchDto } from 'src/common/dto/base-search.dto';
+
+export class GetAdminProductsByQueryDto extends BaseSearchDto {
+    @ApiProperty({
+        required: false,
+        default: [1, 2],
+        isArray: true,
+        type: [Number],
+    })
+    @IsOptional()
+    @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+    @Type(() => Number)
+    @IsArray()
+    @IsInt({ each: true })
+    brandId?: number[];
+
+    @ApiProperty({
+        required: false,
+        default: [2, 3],
+        isArray: true,
+        type: [Number],
+    })
+    @IsOptional()
+    @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+    @Type(() => Number)
+    @IsArray()
+    @IsInt({ each: true })
+    categoryId?: number[];
+}

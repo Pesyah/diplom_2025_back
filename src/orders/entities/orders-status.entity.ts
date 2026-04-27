@@ -9,6 +9,9 @@ export class OrdersStatus {
     @Column({ length: 50 })
     name: string;
 
+    @Column({ length: 10 })
+    color: string;
+
     @Column({ type: 'text', nullable: true })
     description: string;
 

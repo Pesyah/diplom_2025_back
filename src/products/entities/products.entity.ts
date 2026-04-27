@@ -23,7 +23,7 @@ export class Products {
     // Категория
     @ManyToMany(() => ProductsCategory)
     @JoinTable({ name: 'products_and_products_category' })
-    productsCategory: ProductsCategory;
+    productsCategory: ProductsCategory[];
 
     // Что-то типа бренда или производителя
     @ManyToOne(() => Producers)

@@ -1,0 +1,51 @@
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Patch,
+    Post,
+    Query,
+    UseGuards,
+} from '@nestjs/common';
+import { ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { Roles } from 'src/auth/decorators/role.decorator';
+import { BaseSearchDto } from 'src/common/dto/base-search.dto';
+import { AuthGuard } from '../auth/auth.guard';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { DeleteCategoryDto } from './dto/delete-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
+import { ProductsService } from './products.service';
+
+@ApiTags('admin/categories')
+@ApiSecurity('X-AUTH-TOKEN')
+@UseGuards(AuthGuard)
+@Roles('admin')
+@Controller('admin/categories')
+export class AdminCategoriesController {
+    constructor(private readonly productsService: ProductsService) {}
+
+    @Get()
+    @ApiOperation({ summary: 'Админ: список категорий с поиском и пагинацией' })
+    findAdminCategories(@Query() dto: BaseSearchDto) {
+        return this.productsService.findAdminCategories(dto);
+    }
+
+    @Post()
+    @ApiOperation({ summary: 'Админ: создать категорию' })
+    createCategory(@Body() dto: CreateCategoryDto) {
+        return this.productsService.createCategory(dto);
+    }
+
+    @Patch()
+    @ApiOperation({ summary: 'Админ: обновить категорию (id в body)' })
+    updateCategory(@Body() dto: UpdateCategoryDto) {
+        return this.productsService.updateCategory(dto);
+    }
+
+    @Delete()
+    @ApiOperation({ summary: 'Админ: удалить категорию (id в body)' })
+    deleteCategory(@Body() dto: DeleteCategoryDto) {
+        return this.productsService.deleteCategory(dto);
+    }
+}
