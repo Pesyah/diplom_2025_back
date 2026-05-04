@@ -1,6 +1,5 @@
 import { CoffeeAdditiveRelation } from 'src/coffee/entities/coffee-additive-relation.entity';
 import { CoffeeVolumeRelation } from 'src/coffee/entities/coffee-volume-relation.entity';
-import { Coffee } from 'src/coffee/entities/coffee.entity';
 import { Products } from 'src/products/entities/product.entity';
 import {
     Column,
@@ -23,10 +22,6 @@ export class OrdersItems {
     @ManyToOne(() => Products)
     @JoinColumn()
     products: Products;
-
-    @ManyToOne(() => Coffee)
-    @JoinColumn()
-    coffee: Coffee;
 
     @ManyToOne(() => CoffeeAdditiveRelation)
     @JoinColumn()

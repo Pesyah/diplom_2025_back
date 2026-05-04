@@ -20,14 +20,6 @@ export class CreateOrderItemDto {
     @IsOptional()
     productsId?: string;
 
-    @ApiProperty({
-        example: '550e8400-e29b-41d4-a716-446655440000',
-        required: false,
-    })
-    @IsUUID()
-    @IsOptional()
-    coffeeId?: string;
-
     @ApiProperty({ example: 5, required: false })
     @IsInt()
     @IsOptional()

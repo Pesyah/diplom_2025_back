@@ -75,7 +75,6 @@ export class OrdersService {
                 products: itemDto.productsId
                     ? { id: itemDto.productsId }
                     : undefined,
-                coffee: itemDto.coffeeId ? { id: itemDto.coffeeId } : undefined,
                 coffeeVolumeRelation: itemDto.coffeeVolumeRelationId
                     ? { id: itemDto.coffeeVolumeRelationId }
                     : undefined,
@@ -102,7 +101,6 @@ export class OrdersService {
                 orderStatus: true,
                 ordersItems: {
                     products: { productsCategory: true },
-                    coffee: true,
                     coffeeVolumeRelation: {
                         coffee: true,
                         coffeeVolume: true,
@@ -127,7 +125,6 @@ export class OrdersService {
                 orderStatus: true,
                 ordersItems: {
                     products: { productsCategory: true },
-                    coffee: true,
                     coffeeVolumeRelation: {
                         coffee: true,
                         coffeeVolume: true,
@@ -184,7 +181,6 @@ export class OrdersService {
                 orderStatus: true,
                 ordersItems: {
                     products: { productsCategory: true },
-                    coffee: true,
                     coffeeVolumeRelation: {
                         coffee: true,
                         coffeeVolume: true,
@@ -210,7 +206,6 @@ export class OrdersService {
                 orderStatus: true,
                 ordersItems: {
                     products: { productsCategory: true },
-                    coffee: true,
                     coffeeVolumeRelation: {
                         coffee: true,
                         coffeeVolume: true,
@@ -238,7 +233,6 @@ export class OrdersService {
                 orderStatus: true,
                 ordersItems: {
                     products: { productsCategory: true },
-                    coffee: true,
                     coffeeVolumeRelation: {
                         coffee: true,
                         coffeeVolume: true,
@@ -287,7 +281,6 @@ export class OrdersService {
 
         const itemDto: CreateOrderItemDto = {
             productsId: dto.productsId,
-            coffeeId: dto.coffeeId,
             coffeeVolumeRelationId: dto.coffeeVolumeRelationId,
             coffeeAdditiveRelationId: dto.coffeeAdditiveRelationId,
             quantity: dto.quantity,
@@ -298,7 +291,6 @@ export class OrdersService {
         const item = this.itemsRepo.create({
             orders: { id: dto.orderId },
             products: dto.productsId ? { id: dto.productsId } : undefined,
-            coffee: dto.coffeeId ? { id: dto.coffeeId } : undefined,
             coffeeVolumeRelation: dto.coffeeVolumeRelationId
                 ? { id: dto.coffeeVolumeRelationId }
                 : undefined,
@@ -333,7 +325,6 @@ export class OrdersService {
 
         const itemDto: CreateOrderItemDto = {
             productsId: item.products?.id,
-            coffeeId: item.coffee?.id,
             coffeeVolumeRelationId: item.coffeeVolumeRelation?.id,
             coffeeAdditiveRelationId: item.coffeeAdditiveRelation?.id,
             quantity: dto.quantity,
@@ -375,41 +366,27 @@ export class OrdersService {
                 );
             }
             basePrice = Number(product.price);
-        } else if (dto.coffeeId) {
-            const coffee = await this.coffeeRepo.findOne({
-                where: { id: dto.coffeeId },
+        } else if (dto.coffeeVolumeRelationId) {
+            const volumeRel = await this.volumeRelationRepo.findOne({
+                where: { id: dto.coffeeVolumeRelationId },
             });
-            if (!coffee) {
+            if (!volumeRel) {
                 throw new NotFoundException(
-                    `Кофе с id ${dto.coffeeId} не найден`,
+                    `Связь объема с id ${dto.coffeeVolumeRelationId} не найдена`,
                 );
             }
-            basePrice = Number(coffee.price);
+            basePrice = Number(volumeRel.price);
 
-            if (dto.coffeeVolumeRelationId) {
-                const volumeRel = await this.volumeRelationRepo.findOne({
-                    where: { id: dto.coffeeVolumeRelationId },
+            if (dto.coffeeAdditiveRelationId) {
+                const additiveRel = await this.additiveRelationRepo.findOne({
+                    where: { id: dto.coffeeAdditiveRelationId },
                 });
-                if (!volumeRel) {
+                if (!additiveRel) {
                     throw new NotFoundException(
-                        `Связь объема с id ${dto.coffeeVolumeRelationId} не найдена`,
+                        `Добавка с id ${dto.coffeeAdditiveRelationId} не найдена`,
                     );
                 }
-                basePrice = Number(volumeRel.price);
-
-                if (dto.coffeeAdditiveRelationId) {
-                    const additiveRel = await this.additiveRelationRepo.findOne(
-                        {
-                            where: { id: dto.coffeeAdditiveRelationId },
-                        },
-                    );
-                    if (!additiveRel) {
-                        throw new NotFoundException(
-                            `Добавка с id ${dto.coffeeAdditiveRelationId} не найдена`,
-                        );
-                    }
-                    basePrice += Number(additiveRel.price);
-                }
+                basePrice += Number(additiveRel.price);
             }
         } else {
             throw new BadRequestException(
