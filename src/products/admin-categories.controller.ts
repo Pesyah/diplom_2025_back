@@ -3,12 +3,14 @@ import {
     Controller,
     Delete,
     Get,
+    Param,
+    ParseIntPipe,
     Patch,
     Post,
     Query,
     UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { Roles } from 'src/auth/decorators/role.decorator';
 import { BaseSearchDto } from 'src/common/dto/base-search.dto';
 import { AuthGuard } from '../auth/auth.guard';
@@ -29,6 +31,25 @@ export class AdminCategoriesController {
     @ApiOperation({ summary: 'Админ: список категорий с поиском и пагинацией' })
     findAdminCategories(@Query() dto: BaseSearchDto) {
         return this.productsService.findAdminCategories(dto);
+    }
+
+    @Get(':id')
+    @ApiOperation({
+        summary: 'Админ: деталка категории с брендами и продуктами',
+    })
+    @ApiQuery({ name: 'page', required: false })
+    @ApiQuery({ name: 'limit', required: false })
+    @ApiOperation({ summary: 'Админ: список категорий с поиском и пагинацией' })
+    findAdminCategoriesById(
+        @Param('id', ParseIntPipe) id: number,
+        @Query('page') page?: number,
+        @Query('limit') limit?: number,
+    ) {
+        return this.productsService.findAdminCategoriesById(
+            id,
+            page || 1,
+            limit || 20,
+        );
     }
 
     @Post()

@@ -397,6 +397,54 @@ export class ProductsService {
         };
     }
 
+    async findAdminCategoriesById(id: number, page = 1, limit = 20) {
+        const category = await this.productsCategoryRepository.findOne({
+            where: { id },
+        });
+
+        if (!category) {
+            throw new NotFoundException('Категория не найдена');
+        }
+
+        const brands = await this.producersRepository
+            .createQueryBuilder('brand')
+            .innerJoin(
+                'products_and_products_category',
+                'pc',
+                'pc.productsCategoryId = :categoryId',
+                { categoryId: id },
+            )
+            .innerJoin('products', 'p', 'p.id = pc.productsId')
+            .innerJoin('p.producers', 'producer')
+            .where('pc.productsCategoryId = :categoryId', { categoryId: id })
+            .distinct(true)
+            .getMany();
+
+        const [products, total] = await this.productsRepository.findAndCount({
+            where: {
+                productsCategory: { id },
+            },
+            relations: {
+                producers: true,
+            },
+            skip: (page - 1) * limit,
+            take: limit,
+            order: { createdAt: 'DESC' },
+        });
+
+        return {
+            category,
+            brands,
+            products: {
+                data: products,
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
+    }
+
     async createCategory(dto: CreateCategoryDto) {
         const category = this.productsCategoryRepository.create(dto);
         return this.productsCategoryRepository.save(category);

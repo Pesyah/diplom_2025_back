@@ -8,7 +8,7 @@ import {
     Post,
     UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
 
 import { AuthGuard } from 'src/auth/auth.guard';
@@ -20,7 +20,7 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrdersService } from './orders.service';
 
 @ApiTags('Orders')
-@ApiBearerAuth()
+@ApiSecurity('X-AUTH-TOKEN')
 @UseGuards(AuthGuard)
 @Controller('orders')
 export class OrdersController {
