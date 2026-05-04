@@ -1,15 +1,21 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import {
+    Column,
+    Entity,
+    JoinColumn,
+    ManyToOne,
+    PrimaryGeneratedColumn,
+} from 'typeorm';
 import { CoffeeAdditive } from './coffee-additive.entity';
-import { Coffee } from './coffee.entity';
+import { CoffeeVolumeRelation } from './coffee-volume-relation.entity';
 
 @Entity()
 export class CoffeeAdditiveRelation {
-    @PrimaryColumn()
+    @PrimaryGeneratedColumn()
     id: number;
 
-    @ManyToOne(() => Coffee)
+    @ManyToOne(() => CoffeeVolumeRelation)
     @JoinColumn()
-    coffee: Coffee;
+    coffeeVolumeRelation: CoffeeVolumeRelation;
 
     @ManyToOne(() => CoffeeAdditive)
     @JoinColumn()

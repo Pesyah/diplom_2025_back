@@ -36,6 +36,9 @@ export class OrdersItems {
     @JoinColumn()
     coffeeVolumeRelation: CoffeeVolumeRelation;
 
+    @Column()
+    quantity: number;
+
     @Column('decimal', { precision: 10, scale: 2 })
     totalValue: number;
 }

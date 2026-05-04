@@ -23,6 +23,9 @@ export class Products {
     @Column('text')
     description: string;
 
+    @Column('decimal', { precision: 10, scale: 2, default: 0 })
+    price: number;
+
     @DeleteDateColumn()
     deleted_at: Date;
 }

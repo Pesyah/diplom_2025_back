@@ -24,7 +24,10 @@ export class Orders {
     orderStatus: OrderStatus;
 
     @OneToMany(() => OrdersItems, (ordersItems) => ordersItems.orders)
-    ordersItems: OrdersItems;
+    ordersItems: OrdersItems[];
+
+    @Column('text')
+    comment: string;
 
     @Column('decimal', { precision: 10, scale: 2 })
     totalValue: number;
