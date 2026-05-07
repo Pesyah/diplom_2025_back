@@ -70,6 +70,14 @@ export class OrdersService {
             const itemTotal = await this.calculateItemTotal(itemDto);
             totalValue += itemTotal;
 
+            // Get additive relations if provided
+            let additiveRelations: any = [];
+            if (itemDto.coffeeAdditiveRelationIds?.length) {
+                additiveRelations = await this.additiveRelationRepo.findByIds(
+                    itemDto.coffeeAdditiveRelationIds,
+                );
+            }
+
             const item = this.itemsRepo.create({
                 orders: { id: savedOrder.id },
                 products: itemDto.productsId
@@ -78,9 +86,7 @@ export class OrdersService {
                 coffeeVolumeRelation: itemDto.coffeeVolumeRelationId
                     ? { id: itemDto.coffeeVolumeRelationId }
                     : undefined,
-                coffeeAdditiveRelation: itemDto.coffeeAdditiveRelationId
-                    ? { id: itemDto.coffeeAdditiveRelationId }
-                    : undefined,
+                coffeeAdditiveRelation: additiveRelations,
                 quantity: itemDto.quantity,
                 totalValue: itemTotal,
             });
@@ -282,11 +288,19 @@ export class OrdersService {
         const itemDto: CreateOrderItemDto = {
             productsId: dto.productsId,
             coffeeVolumeRelationId: dto.coffeeVolumeRelationId,
-            coffeeAdditiveRelationId: dto.coffeeAdditiveRelationId,
+            coffeeAdditiveRelationIds: dto.coffeeAdditiveRelationIds,
             quantity: dto.quantity,
         };
 
         const itemTotal = await this.calculateItemTotal(itemDto);
+
+        // Get additive relations if provided
+        let additiveRelations: any = [];
+        if (dto.coffeeAdditiveRelationIds?.length) {
+            additiveRelations = await this.additiveRelationRepo.findByIds(
+                dto.coffeeAdditiveRelationIds,
+            );
+        }
 
         const item = this.itemsRepo.create({
             orders: { id: dto.orderId },
@@ -294,9 +308,7 @@ export class OrdersService {
             coffeeVolumeRelation: dto.coffeeVolumeRelationId
                 ? { id: dto.coffeeVolumeRelationId }
                 : undefined,
-            coffeeAdditiveRelation: dto.coffeeAdditiveRelationId
-                ? { id: dto.coffeeAdditiveRelationId }
-                : undefined,
+            coffeeAdditiveRelation: additiveRelations,
             quantity: dto.quantity,
             totalValue: itemTotal,
         });
@@ -312,7 +324,6 @@ export class OrdersService {
             relations: [
                 'orders',
                 'products',
-                'coffee',
                 'coffeeVolumeRelation',
                 'coffeeAdditiveRelation',
             ],
@@ -323,10 +334,13 @@ export class OrdersService {
 
         item.quantity = dto.quantity;
 
+        // Preserve existing additive relations since we're only updating quantity
         const itemDto: CreateOrderItemDto = {
             productsId: item.products?.id,
             coffeeVolumeRelationId: item.coffeeVolumeRelation?.id,
-            coffeeAdditiveRelationId: item.coffeeAdditiveRelation?.id,
+            coffeeAdditiveRelationIds: item.coffeeAdditiveRelation?.map(
+                (rel) => rel.id,
+            ),
             quantity: dto.quantity,
         };
 
@@ -377,20 +391,19 @@ export class OrdersService {
             }
             basePrice = Number(volumeRel.price);
 
-            if (dto.coffeeAdditiveRelationId) {
-                const additiveRel = await this.additiveRelationRepo.findOne({
-                    where: { id: dto.coffeeAdditiveRelationId },
-                });
-                if (!additiveRel) {
-                    throw new NotFoundException(
-                        `Добавка с id ${dto.coffeeAdditiveRelationId} не найдена`,
-                    );
+            // Sum up all additives
+            if (dto.coffeeAdditiveRelationIds?.length) {
+                const additiveRels = await this.additiveRelationRepo.findByIds(
+                    dto.coffeeAdditiveRelationIds,
+                );
+
+                for (const additiveRel of additiveRels) {
+                    basePrice += Number(additiveRel.price);
                 }
-                basePrice += Number(additiveRel.price);
             }
         } else {
             throw new BadRequestException(
-                'Должен быть указан productsId или coffeeId',
+                'Должен быть указан productsId или coffeeVolumeRelationId',
             );
         }
 

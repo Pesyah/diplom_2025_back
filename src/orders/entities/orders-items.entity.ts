@@ -5,6 +5,8 @@ import {
     Column,
     Entity,
     JoinColumn,
+    JoinTable,
+    ManyToMany,
     ManyToOne,
     PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -23,9 +25,9 @@ export class OrdersItems {
     @JoinColumn()
     products: Products;
 
-    @ManyToOne(() => CoffeeAdditiveRelation)
-    @JoinColumn()
-    coffeeAdditiveRelation: CoffeeAdditiveRelation;
+    @ManyToMany(() => CoffeeAdditiveRelation)
+    @JoinTable({ name: 'orders_items_and_coffee_additive_relation' })
+    coffeeAdditiveRelation: CoffeeAdditiveRelation[];
 
     @ManyToOne(() => CoffeeVolumeRelation)
     @JoinColumn()

@@ -25,10 +25,14 @@ export class CreateOrderItemDto {
     @IsOptional()
     coffeeVolumeRelationId?: number;
 
-    @ApiProperty({ example: 3, required: false })
-    @IsInt()
+    @ApiProperty({
+        example: [1, 2, 3],
+        required: false,
+        type: [Number],
+    })
+    @IsArray()
     @IsOptional()
-    coffeeAdditiveRelationId?: number;
+    coffeeAdditiveRelationIds?: number[];
 
     @ApiProperty({ example: 2 })
     @IsInt()

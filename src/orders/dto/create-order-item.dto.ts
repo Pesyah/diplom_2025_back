@@ -1,6 +1,13 @@
 // dto/create-order-item.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsNotEmpty, IsOptional, IsUUID, Min } from 'class-validator';
+import {
+    IsArray,
+    IsInt,
+    IsNotEmpty,
+    IsOptional,
+    IsUUID,
+    Min,
+} from 'class-validator';
 
 export class CreateOrderItemAdminDto {
     @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
@@ -21,10 +28,14 @@ export class CreateOrderItemAdminDto {
     @IsOptional()
     coffeeVolumeRelationId?: number;
 
-    @ApiProperty({ example: 3, required: false })
-    @IsInt()
+    @ApiProperty({
+        example: [1, 2, 3],
+        required: false,
+        type: [Number],
+    })
+    @IsArray()
     @IsOptional()
-    coffeeAdditiveRelationId?: number;
+    coffeeAdditiveRelationIds?: number[];
 
     @ApiProperty({ example: 2 })
     @IsInt()

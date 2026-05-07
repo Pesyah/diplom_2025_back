@@ -42,7 +42,12 @@ export class CoffeeService {
         return this.coffeeRepo.find({
             where: {},
             relations: {
-                coffeeVolumeRelation: true,
+                coffeeVolumeRelation: {
+                    coffeeAdditiveRelation: {
+                        coffeeAdditive: true,
+                    },
+                    coffeeVolume: true,
+                },
             },
         });
     }
