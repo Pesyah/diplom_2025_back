@@ -71,6 +71,7 @@ export class ProductsService {
             description: dto.description,
             productsCategory: category,
             price: dto.price,
+            avatar: dto.avatar,
         });
         return this.productsRepo.save(product);
     }
@@ -87,6 +88,7 @@ export class ProductsService {
         if (dto.description !== undefined)
             product.description = dto.description;
         if (dto.price !== undefined) product.price = dto.price;
+        if (dto.avatar !== undefined) product.avatar = dto.avatar;
 
         if (dto.productsCategoryId !== undefined) {
             const category = await this.categoryRepo.findOne({

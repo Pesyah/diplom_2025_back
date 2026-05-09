@@ -4,14 +4,14 @@ import { Users } from './users.entity';
 
 @Entity()
 export class UserRoleType {
-  @ApiProperty()
-  @PrimaryColumn()
-  id: number;
+    @ApiProperty()
+    @PrimaryColumn()
+    id: number;
 
-  @ApiProperty()
-  @Column({ unique: true })
-  name: string;
+    @ApiProperty()
+    @Column()
+    name: string;
 
-  @OneToOne(() => Users)
-  user: Users;
+    @OneToOne(() => Users)
+    user: Users;
 }

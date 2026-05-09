@@ -19,6 +19,11 @@ export class UpdateProductDto {
     @IsOptional()
     name?: string;
 
+    @ApiProperty({ example: 'Круассан' })
+    @IsString()
+    @IsOptional()
+    avatar: string;
+
     @ApiProperty({ example: 'Свежий круассан с маслом', required: false })
     @IsString()
     @IsOptional()

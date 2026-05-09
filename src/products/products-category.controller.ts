@@ -25,7 +25,7 @@ export class ProductsCategoryController {
 
     @Get('/admin/all')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Получить все категории (админ)' })
     findAll() {
         return this.productsService.findAllCategories();
@@ -33,7 +33,7 @@ export class ProductsCategoryController {
 
     @Post('/admin')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Создать категорию (админ)' })
     create(@Body() dto: CreateProductCategoryDto) {
         return this.productsService.createCategory(dto);
@@ -41,7 +41,7 @@ export class ProductsCategoryController {
 
     @Patch('/admin')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Обновить категорию (админ)' })
     update(@Body() dto: UpdateProductCategoryDto) {
         return this.productsService.updateCategory(dto);
@@ -49,7 +49,7 @@ export class ProductsCategoryController {
 
     @Delete('/admin/:id')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Удалить категорию (админ)' })
     delete(@Param('id') id: string) {
         return this.productsService.deleteCategory(+id);

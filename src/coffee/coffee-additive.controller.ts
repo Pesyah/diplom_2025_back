@@ -31,7 +31,7 @@ export class CoffeeAdditiveController {
 
     @Get('/admin/all')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Получить все справочные добавки (админ)' })
     findAll() {
         return this.coffeeService.findAllCoffeeAdditives();
@@ -39,7 +39,7 @@ export class CoffeeAdditiveController {
 
     @Post('/admin')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Создать справочную добавку (админ)' })
     create(@Body() dto: CreateCoffeeAdditiveDto) {
         return this.coffeeService.createCoffeeAdditive(dto);
@@ -47,7 +47,7 @@ export class CoffeeAdditiveController {
 
     @Patch('/admin')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Обновить справочную добавку (админ)' })
     update(@Body() dto: UpdateCoffeeAdditiveDto) {
         return this.coffeeService.updateCoffeeAdditive(dto);
@@ -55,7 +55,7 @@ export class CoffeeAdditiveController {
 
     @Delete('/admin/:id')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Удалить справочную добавку (админ)' })
     delete(@Param('id') id: string) {
         return this.coffeeService.deleteCoffeeAdditive(+id);

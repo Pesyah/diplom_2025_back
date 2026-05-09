@@ -55,6 +55,10 @@ export class SeedService {
                 id: 2,
                 name: 'admin',
             }),
+            this.userRoleTypeRepository.create({
+                id: 3,
+                name: 'moderator',
+            }),
         ]);
     }
 }

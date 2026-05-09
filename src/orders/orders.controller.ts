@@ -60,7 +60,7 @@ export class OrdersController {
 
     @Get('/admin/all')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Получить все заказы (админ)' })
     findAllAdmin() {
         return this.ordersService.findAllAdmin();
@@ -68,7 +68,7 @@ export class OrdersController {
 
     @Get('/admin/by-id/:id')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Получить заказ по id (админ)' })
     findByIdAdmin(@Param('id') id: string) {
         return this.ordersService.findByIdAdmin(id);
@@ -76,7 +76,7 @@ export class OrdersController {
 
     @Get('/admin/by-user/:userId')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Получить заказы пользователя (админ)' })
     findByUserAdmin(@Param('userId') userId: string) {
         return this.ordersService.findByUserAdmin(userId);
@@ -84,7 +84,7 @@ export class OrdersController {
 
     @Patch('/admin')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Обновить статус заказа (админ)' })
     updateStatus(@Body() dto: UpdateOrderAdminDto) {
         return this.ordersService.updateStatus(dto);
@@ -92,7 +92,7 @@ export class OrdersController {
 
     @Post('/admin/items')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Добавить позицию в заказ (админ)' })
     addItem(@Body() dto: CreateOrderItemAdminDto) {
         return this.ordersService.addItem(dto);
@@ -100,7 +100,7 @@ export class OrdersController {
 
     @Patch('/admin/items')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Обновить позицию заказа (админ)' })
     updateItem(@Body() dto: UpdateOrderItemDto) {
         return this.ordersService.updateItem(dto);
@@ -108,7 +108,7 @@ export class OrdersController {
 
     @Delete('/admin/items/:id')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Удалить позицию из заказа (админ)' })
     deleteItem(@Param('id') id: string) {
         return this.ordersService.deleteItem(id);

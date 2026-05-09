@@ -8,6 +8,11 @@ export class CreateProductDto {
     @IsNotEmpty()
     name: string;
 
+    @ApiProperty({ example: 'Круассан' })
+    @IsString()
+    @IsNotEmpty()
+    avatar: string;
+
     @ApiProperty({ example: 'Свежий круассан с маслом' })
     @IsString()
     @IsNotEmpty()

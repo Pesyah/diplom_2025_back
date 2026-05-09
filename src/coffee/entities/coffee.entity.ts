@@ -21,9 +21,6 @@ export class Coffee {
     @Column('text')
     description: string;
 
-    @Column('decimal', { precision: 10, scale: 2 })
-    price: number;
-
     @Column()
     avatar: string;
 

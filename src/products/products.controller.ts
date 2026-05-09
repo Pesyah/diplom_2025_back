@@ -40,7 +40,7 @@ export class ProductsController {
 
     @Get('/admin/all')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({
         summary: 'Получить все продукты включая удаленные (админ)',
     })
@@ -50,7 +50,7 @@ export class ProductsController {
 
     @Get('/admin/deleted')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Получить только удаленные продукты (админ)' })
     findDeletedAdmin() {
         return this.productsService.findDeletedAdmin();
@@ -58,7 +58,7 @@ export class ProductsController {
 
     @Post('/admin')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Создать продукт (админ)' })
     create(@Body() dto: CreateProductDto) {
         return this.productsService.create(dto);
@@ -66,7 +66,7 @@ export class ProductsController {
 
     @Patch('/admin')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Обновить продукт (админ)' })
     update(@Body() dto: UpdateProductDto) {
         return this.productsService.update(dto);
@@ -74,7 +74,7 @@ export class ProductsController {
 
     @Delete('/admin/soft/:id')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Мягкое удаление продукта (админ)' })
     softDelete(@Param('id') id: string) {
         return this.productsService.softDelete(id);
@@ -82,7 +82,7 @@ export class ProductsController {
 
     @Post('/admin/restore/:id')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Восстановить продукт (админ)' })
     restore(@Param('id') id: string) {
         return this.productsService.restore(id);

@@ -70,7 +70,7 @@ export class AuthController {
 
     @ApiOperation({ summary: 'Авторизация' })
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @Post('/create-admin')
     async createAdmin(@Body() body: RegisterDto) {
         return this.authService.createAdmin(body);
@@ -78,7 +78,7 @@ export class AuthController {
 
     @ApiOperation({ summary: 'Авторизация' })
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @Get('/user-by-query/:query')
     async usersByQuery(@Param('query') query: string) {
         return this.authService.usersByQuery(query);

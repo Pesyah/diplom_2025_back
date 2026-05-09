@@ -20,6 +20,9 @@ export class Products {
     @Column()
     name: string;
 
+    @Column({ default: 'https://example.com/avatar.jpg' })
+    avatar: string;
+
     @Column('text')
     description: string;
 

@@ -44,7 +44,7 @@ export class CoffeeController {
 
     @Get('/admin/all')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Получить все кофе включая удаленные (админ)' })
     findAllAdmin() {
         return this.coffeeService.findAllAdmin();
@@ -52,7 +52,7 @@ export class CoffeeController {
 
     // @Get('/admin/deleted')
     // @UseGuards(AuthGuard, RolesGuard)
-    // @Roles('admin')
+    // @Roles('admin', 'moderator')
     // @ApiOperation({ summary: 'Получить только удаленные кофе (админ)' })
     // findDeletedAdmin() {
     //     return this.coffeeService.findDeletedAdmin();
@@ -60,7 +60,7 @@ export class CoffeeController {
 
     @Post('/admin')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Создать кофе (админ)' })
     create(@Body() dto: CreateCoffeeDto) {
         return this.coffeeService.create(dto);
@@ -68,7 +68,7 @@ export class CoffeeController {
 
     @Patch('/admin')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Обновить кофе (админ)' })
     update(@Body() dto: UpdateCoffeeDto) {
         return this.coffeeService.update(dto);
@@ -76,7 +76,7 @@ export class CoffeeController {
 
     @Delete('/admin/soft/:id')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Мягкое удаление кофе (админ)' })
     softDelete(@Param('id') id: string) {
         return this.coffeeService.softDelete(id);
@@ -84,7 +84,7 @@ export class CoffeeController {
 
     @Post('/admin/restore/:id')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Восстановить кофе (админ)' })
     restore(@Param('id') id: string) {
         return this.coffeeService.restore(id);
@@ -104,7 +104,7 @@ export class CoffeeController {
 
     @Get('/coffee-volume/admin/all')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Получить все связи кофе-объем (админ)' })
     findAllVolumeRelationsAdmin() {
         return this.coffeeService.findAllVolumeRelationsAdmin();
@@ -112,7 +112,7 @@ export class CoffeeController {
 
     @Post('/coffee-volume/admin')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Создать связь кофе-объем (админ)' })
     createVolumeRelation(@Body() dto: CreateCoffeeVolumeRelationDto) {
         return this.coffeeService.createVolumeRelation(dto);
@@ -120,7 +120,7 @@ export class CoffeeController {
 
     @Patch('/coffee-volume/admin')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Обновить связь кофе-объем (админ)' })
     updateVolumeRelation(@Body() dto: UpdateCoffeeVolumeRelationDto) {
         return this.coffeeService.updateVolumeRelation(dto);
@@ -128,7 +128,7 @@ export class CoffeeController {
 
     @Delete('/coffee-volume/admin/:id')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Удалить связь кофе-объем (админ)' })
     deleteVolumeRelation(@Param('id') id: string) {
         return this.coffeeService.deleteVolumeRelation(+id);
@@ -152,7 +152,7 @@ export class CoffeeController {
 
     @Get('/coffee-additive/admin/all')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Получить все связи объем-добавка (админ)' })
     findAllAdditiveRelationsAdmin() {
         return this.coffeeService.findAllAdditiveRelationsAdmin();
@@ -160,7 +160,7 @@ export class CoffeeController {
 
     @Post('/coffee-additive/admin')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Создать связь объем-добавка (админ)' })
     createAdditiveRelation(@Body() dto: CreateCoffeeAdditiveRelationDto) {
         return this.coffeeService.createAdditiveRelation(dto);
@@ -168,7 +168,7 @@ export class CoffeeController {
 
     @Patch('/coffee-additive/admin')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Обновить связь объем-добавка (админ)' })
     updateAdditiveRelation(@Body() dto: UpdateCoffeeAdditiveRelationDto) {
         return this.coffeeService.updateAdditiveRelation(dto);
@@ -176,7 +176,7 @@ export class CoffeeController {
 
     @Delete('/coffee-additive/admin/:id')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Удалить связь объем-добавка (админ)' })
     deleteAdditiveRelation(@Param('id') id: string) {
         return this.coffeeService.deleteAdditiveRelation(+id);

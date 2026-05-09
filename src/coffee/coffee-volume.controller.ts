@@ -31,7 +31,7 @@ export class CoffeeVolumeController {
 
     @Get('/admin/all')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Получить все справочные объемы (админ)' })
     findAll() {
         return this.coffeeService.findAllCoffeeVolumes();
@@ -39,7 +39,7 @@ export class CoffeeVolumeController {
 
     @Post('/admin')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Создать справочный объем (админ)' })
     create(@Body() dto: CreateCoffeeVolumeDto) {
         return this.coffeeService.createCoffeeVolume(dto);
@@ -47,7 +47,7 @@ export class CoffeeVolumeController {
 
     @Patch('/admin')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Обновить справочный объем (админ)' })
     update(@Body() dto: UpdateCoffeeVolumeDto) {
         return this.coffeeService.updateCoffeeVolume(dto);
@@ -55,7 +55,7 @@ export class CoffeeVolumeController {
 
     @Delete('/admin/:id')
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'moderator')
     @ApiOperation({ summary: 'Удалить справочный объем (админ)' })
     delete(@Param('id') id: string) {
         return this.coffeeService.deleteCoffeeVolume(+id);
