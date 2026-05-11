@@ -34,7 +34,7 @@ export class Reservation {
     // Основные жители
     @ManyToMany(() => Users)
     @JoinTable({ name: 'reservation_and_users' })
-    guests: Users;
+    guests: Users[];
 
     @Column()
     checkInDate: Date;
@@ -50,6 +50,9 @@ export class Reservation {
 
     @Column('text', { nullable: true })
     specialRequests: string;
+
+    @Column('text', { nullable: true })
+    cancellationReason: string;
 
     @CreateDateColumn()
     createdAt: Date;

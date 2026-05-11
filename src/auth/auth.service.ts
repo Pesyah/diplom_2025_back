@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { ILike, IsNull, Not, Repository } from 'typeorm';
 import { jwtConstants } from './constants';
 import { RegisterDto } from './dto/login.dto';
+import { UpdateUserByAdminDto } from './dto/update-user-by-admin.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRoleType } from './entities/user-roles.entity';
 import { Users } from './entities/users.entity';
@@ -195,7 +196,7 @@ export class AuthService {
         return this.userRepository.update({ id: user.id }, updateUserDto);
     }
 
-    async createAdmin(body: RegisterDto) {
+    async createManager(body: RegisterDto) {
         const existUser = await this.userRepository.findOneBy({
             email: body.email,
         });
@@ -230,5 +231,20 @@ export class AuthService {
                 roleType: true,
             },
         });
+    }
+
+    async updateUserByAdmin(userId: string, dto: UpdateUserByAdminDto) {
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+        });
+
+        if (!user) {
+            throw new HttpException(
+                'Пользователь не найден',
+                HttpStatus.NOT_FOUND,
+            );
+        }
+
+        return this.userRepository.update({ id: userId }, dto);
     }
 }
