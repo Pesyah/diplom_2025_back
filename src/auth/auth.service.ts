@@ -203,7 +203,7 @@ export class AuthService {
         newUser.name = body.name;
         newUser.phone = body.phone;
         newUser.roleType = await this.userRoleTypeRepository.findOneByOrFail({
-            id: 2,
+            id: 3,
         });
 
         return this.userRepository.save(newUser);

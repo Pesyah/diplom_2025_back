@@ -114,7 +114,7 @@ export class CoffeeService {
     // ===================== COFFEE VOLUME =====================
 
     async findAllCoffeeVolumes(): Promise<CoffeeVolume[]> {
-        return this.coffeeVolumeRepo.find();
+        return this.coffeeVolumeRepo.find({});
     }
 
     async createCoffeeVolume(
@@ -159,7 +159,12 @@ export class CoffeeService {
     ): Promise<CoffeeVolumeRelation[]> {
         return this.coffeeVolumeRelationRepo.find({
             where: { coffee: { id: coffeeId } },
-            relations: ['coffeeVolume'],
+            relations: {
+                coffeeAdditiveRelation: {
+                    coffeeAdditive: true,
+                },
+                coffeeVolume: true,
+            },
         });
     }
 
@@ -271,13 +276,19 @@ export class CoffeeService {
     ): Promise<CoffeeAdditiveRelation[]> {
         return this.coffeeAdditiveRelationRepo.find({
             where: { coffeeVolumeRelation: { id: coffeeVolumeRelationId } },
-            relations: ['coffeeAdditive'],
+            relations: {
+                coffeeAdditive: true,
+                coffeeVolumeRelation: { coffee: true, coffeeVolume: true },
+            },
         });
     }
 
     async findAllAdditiveRelationsAdmin(): Promise<CoffeeAdditiveRelation[]> {
         return this.coffeeAdditiveRelationRepo.find({
-            relations: ['coffeeVolumeRelation', 'coffeeAdditive'],
+            relations: {
+                coffeeAdditive: true,
+                coffeeVolumeRelation: { coffee: true, coffeeVolume: true },
+            },
         });
     }
 

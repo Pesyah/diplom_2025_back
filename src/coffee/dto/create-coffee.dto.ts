@@ -1,6 +1,6 @@
 // dto/create-coffee.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateCoffeeDto {
     @ApiProperty({ example: 'Latte' })
@@ -12,11 +12,6 @@ export class CreateCoffeeDto {
     @IsString()
     @IsNotEmpty()
     description: string;
-
-    @ApiProperty({ example: 150.0 })
-    @IsNumber({ maxDecimalPlaces: 2 })
-    @Min(0)
-    price: number;
 
     @ApiProperty({ example: 'https://example.com/avatar.jpg' })
     @IsString()
