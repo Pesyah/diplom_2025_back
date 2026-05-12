@@ -21,9 +21,10 @@ export class AssignUserStructureDto {
         description: 'староста ли',
         example: true,
     })
+    @IsOptional()
     @IsNotEmpty()
     @IsBoolean()
-    isElder: boolean;
+    isElder?: boolean;
 
     @ApiProperty({
         description: 'ID группы (0 для очистки)',
