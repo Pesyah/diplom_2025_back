@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AlertsType } from 'src/alerts/entities/alerts-type.entity';
 import { UserRoleType } from 'src/auth/entities/user-roles.entity';
+import { Users } from 'src/auth/entities/users.entity';
 import { Department } from 'src/groups/entities/department.entity';
 import { Faculty } from 'src/groups/entities/faculty.entity';
 import { Groups } from 'src/groups/entities/group.entity';
@@ -21,6 +22,8 @@ export class SeedService {
         private facultyRepository: Repository<Faculty>,
         @InjectRepository(Groups)
         private groupsRepository: Repository<Groups>,
+        @InjectRepository(Users)
+        private usersRepository: Repository<Users>,
     ) {
         this.runSeeds();
     }
@@ -31,6 +34,28 @@ export class SeedService {
         await this.seedFaculties();
         await this.seedDepartments();
         await this.seedGroups();
+        await this.baseUser();
+    }
+
+    async baseUser() {
+        const existUser = await this.usersRepository.findOneBy({
+            email: 'baseMail@mail.ru',
+        });
+        if (existUser) return;
+
+        const baseRole = await this.userRoleTypeRepository.findOneBy({ id: 2 });
+        if (!baseRole) return;
+        await this.usersRepository.save(
+            this.usersRepository.create({
+                email: 'baseMail@mail.ru',
+                name: 'baseName',
+                surname: 'baseSurname',
+                password:
+                    '$2b$12$Uc3bPu7UG9ITKShsK5DibOpz6ZS/Eo5Vi9SS6xbjBkoqGUZe9oWYe', // string
+                phone: '+79999999999',
+                roleType: baseRole, // делаю его сразу админом
+            }),
+        );
     }
 
     async seedFaculties() {
