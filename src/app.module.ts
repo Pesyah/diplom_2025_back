@@ -22,7 +22,7 @@ import { UserRoleModule } from './userRole/userRole.module';
             useFactory: (configService: ConfigService) => ({
                 type: 'postgres',
                 host: 'localhost',
-                port: 5433,
+                port: 5434,
                 username: 'postgres',
                 password: 'postgres',
                 database: 'diplom_technika',
