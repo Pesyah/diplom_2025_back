@@ -240,10 +240,6 @@ export class RoomsService {
     async setRoomAvailable(id: string) {
         const room = await this.findByIdWithDeleted(id);
 
-        if (room.roomsStatus.id === 3) {
-            return room;
-        }
-
         const availableStatus = await this.roomsStatusRepository.findOne({
             where: { id: 1 },
         });
