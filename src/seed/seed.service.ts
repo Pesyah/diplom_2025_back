@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserRoleType } from 'src/auth/entities/user-roles.entity';
+import { Users } from 'src/auth/entities/users.entity';
 import { OrdersStatus } from 'src/orders/entities/orders-status.entity';
 import { Producers } from 'src/products/entities/producers.entity';
 import { ProductsCategory } from 'src/products/entities/products-category.entity';
@@ -19,6 +20,8 @@ export class SeedService {
         private readonly productsCategoryRepository: Repository<ProductsCategory>,
         @InjectRepository(OrdersStatus)
         private readonly ordersStatusRepository: Repository<OrdersStatus>,
+        @InjectRepository(Users)
+        private readonly usersRepository: Repository<Users>,
     ) {
         this.runSeeds();
     }
@@ -28,6 +31,28 @@ export class SeedService {
         await this.producers();
         await this.productsCategory();
         await this.ordersStatus();
+        await this.baseUser();
+    }
+
+    async baseUser() {
+        const existUser = await this.usersRepository.findOneBy({
+            email: 'baseMail@mail.ru',
+        });
+        if (existUser) return;
+
+        const baseRole = await this.userRoleTypeRepository.findOneBy({ id: 3 });
+        if (!baseRole) return;
+        await this.usersRepository.save(
+            this.usersRepository.create({
+                email: 'baseMail@mail.ru',
+                name: 'baseName',
+                surname: 'baseSurname',
+                password:
+                    '$2b$12$Uc3bPu7UG9ITKShsK5DibOpz6ZS/Eo5Vi9SS6xbjBkoqGUZe9oWYe', // string
+                phone: '+79999999999',
+                roleType: baseRole, // делаю его сразу админом
+            }),
+        );
     }
 
     async ordersStatus() {
