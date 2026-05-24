@@ -40,7 +40,7 @@ export class SeedService {
         });
         if (existUser) return;
 
-        const baseRole = await this.userRoleTypeRepository.findOneBy({ id: 3 });
+        const baseRole = await this.userRoleTypeRepository.findOneBy({ id: 2 });
         if (!baseRole) return;
         await this.usersRepository.save(
             this.usersRepository.create({
