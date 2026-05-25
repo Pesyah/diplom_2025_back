@@ -12,15 +12,16 @@ import { ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
 
 import { Roles } from 'src/auth/decorators/role.decorator';
+import { RolesGuard } from 'src/auth/guard/rolesGuard';
 import { CreateProductDto } from './dto/create-product.dto';
 import { DeleteProductDto } from './dto/delete-product.dto';
-import { GetProductsByQueryDto } from './dto/get-products-by-query.dto';
+import { GetAdminProductsByQueryDto } from './dto/get-admin-products-by-query.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductsService } from './products.service';
 
 @ApiTags('admin/products')
 @ApiSecurity('X-AUTH-TOKEN')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, RolesGuard)
 @Roles('admin')
 @Controller('admin/products')
 export class AdminProductsController {
@@ -30,7 +31,7 @@ export class AdminProductsController {
     @ApiOperation({
         summary: 'Админ: список продуктов с фильтрами и пагинацией',
     })
-    findAdminProducts(@Query() dto: GetProductsByQueryDto) {
+    findAdminProducts(@Query() dto: GetAdminProductsByQueryDto) {
         return this.productsService.findAdminProducts(dto);
     }
 

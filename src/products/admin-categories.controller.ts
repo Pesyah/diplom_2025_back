@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { Roles } from 'src/auth/decorators/role.decorator';
+import { RolesGuard } from 'src/auth/guard/rolesGuard';
 import { BaseSearchDto } from 'src/common/dto/base-search.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -21,7 +22,7 @@ import { ProductsService } from './products.service';
 
 @ApiTags('admin/categories')
 @ApiSecurity('X-AUTH-TOKEN')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, RolesGuard)
 @Roles('admin')
 @Controller('admin/categories')
 export class AdminCategoriesController {

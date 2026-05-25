@@ -54,7 +54,15 @@ export class OrdersController {
         return this.ordersService.getAllOrders();
     }
 
-    @Get('by-id/:id')
+    @Get('statuses')
+    @UseGuards(RolesGuard)
+    @Roles('admin')
+    @ApiOperation({ summary: '(Admin) Получить статусы заказов' })
+    async getStatuses() {
+        return this.ordersService.getStatuses();
+    }
+
+    @Get('admin/by-id/:id')
     @UseGuards(RolesGuard)
     @Roles('admin')
     @ApiOperation({ summary: '(Admin) Получить заказ по ID' })
