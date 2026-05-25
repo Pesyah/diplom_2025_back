@@ -28,8 +28,8 @@ export class SeedService {
 
     async runSeeds() {
         await this.userRoleType();
-        await this.producers();
-        await this.productsCategory();
+        // await this.producers();
+        // await this.productsCategory();
         await this.ordersStatus();
         await this.baseUser();
     }
