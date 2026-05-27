@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #f4f5f1;
+        color: #2d2640;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 12px;
+      }
+
+      .page {
+        background: #ffffff;
+        min-height: 100vh;
+        padding: 30px;
+      }
+
+      .header {
+        align-items: flex-start;
+        border-bottom: 3px solid #4c4993;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 22px;
+        padding-bottom: 18px;
+      }
+
+      .brand {
+        color: #4c4993;
+        font-size: 30px;
+        font-weight: 800;
+        letter-spacing: 0;
+        line-height: 1;
+        margin-bottom: 8px;
+      }
+
+      h1 {
+        font-size: 22px;
+        margin: 0;
+      }
+
+      h2 {
+        color: #4c4993;
+        font-size: 16px;
+        margin: 26px 0 10px;
+      }
+
+      .meta {
+        color: #5d5a75;
+        line-height: 1.55;
+        max-width: 310px;
+        text-align: right;
+      }
+
+      .filters {
+        background: #f6f7fb;
+        border: 1px solid #dfe3f3;
+        border-radius: 8px;
+        display: grid;
+        gap: 8px;
+        grid-template-columns: 1fr 1fr;
+        margin-bottom: 18px;
+        padding: 14px;
+      }
+
+      .filter-label {
+        color: #6f6b85;
+        display: block;
+        font-size: 10px;
+        margin-bottom: 3px;
+        text-transform: uppercase;
+      }
+
+      .filter-value {
+        font-weight: 700;
+      }
+
+      .summary {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(5, 1fr);
+        margin: 18px 0 6px;
+      }
+
+      .summary-card {
+        border-radius: 8px;
+        min-height: 74px;
+        padding: 12px;
+      }
+
+      .summary-card:nth-child(1) {
+        background: #a1cdc4;
+        color: #1a3c34;
+      }
+
+      .summary-card:nth-child(2) {
+        background: #bfc9ed;
+        color: #2d2640;
+      }
+
+      .summary-card:nth-child(3) {
+        background: #f5f0eb;
+        color: #856404;
+      }
+
+      .summary-card:nth-child(4) {
+        background: #fde8e8;
+        color: #a13229;
+      }
+
+      .summary-card:nth-child(5) {
+        background: #e7f2ef;
+        color: #1a3c34;
+      }
+
+      .summary-value {
+        font-size: 18px;
+        font-weight: 800;
+        margin-bottom: 5px;
+      }
+
+      .summary-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      table {
+        border-collapse: collapse;
+        page-break-inside: auto;
+        width: 100%;
+      }
+
+      thead {
+        display: table-header-group;
+      }
+
+      tr {
+        page-break-inside: avoid;
+      }
+
+      th {
+        background: #4c4993;
+        color: #ffffff;
+        font-size: 10px;
+        padding: 8px;
+        text-align: left;
+        text-transform: uppercase;
+      }
+
+      td {
+        border-bottom: 1px solid #e5e7f0;
+        padding: 8px;
+        vertical-align: top;
+      }
+
+      tbody tr:nth-child(even) td {
+        background: #fafbff;
+      }
+
+      .number {
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .empty {
+        color: #77738d;
+        padding: 16px;
+        text-align: center;
+      }
+
+      .section {
+        page-break-inside: avoid;
+      }
+
+      .badge {
+        background: #f5f0eb;
+        border-radius: 999px;
+        color: #6d5809;
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 4px 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="header">
+        <div>
+          <div class="brand">RestInn</div>
+          <h1>Отчет по комнатам и бронированиям</h1>
+        </div>
+        <div class="meta">
+          Сформировано: {{generatedAt}}<br />
+          Формат: PDF<br />
+          Источник: система управления отелем
+        </div>
+      </section>
+
+      <section class="filters">
+        <div>
+          <span class="filter-label">Период</span>
+          <span class="filter-value">{{period}}</span>
+        </div>
+        <div>
+          <span class="filter-label">Комнаты</span>
+          <span class="filter-value">{{roomsFilter}}</span>
+        </div>
+        <div style="grid-column: 1 / -1">
+          <span class="filter-label">Статусы брони</span>
+          <span class="filter-value">{{statusesFilter}}</span>
+        </div>
+      </section>
+
+      <section class="summary">
+        <div class="summary-card">
+          <div class="summary-value">{{summary.roomsCount}}</div>
+          <div class="summary-label">Комнат</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-value">{{summary.reservationsCount}}</div>
+          <div class="summary-label">Броней</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-value">{{summary.nights}}</div>
+          <div class="summary-label">Ночей</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-value">{{summary.revenueFormatted}}</div>
+          <div class="summary-label">Выручка</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-value">{{summary.averageDailyRateFormatted}}</div>
+          <div class="summary-label">ADR</div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Разрез по комнатам</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Комната</th>
+              <th class="number">Броней</th>
+              <th class="number">Ночей</th>
+              <th class="number">ADR</th>
+              <th class="number">Выручка</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#if byRooms.length}}
+              {{#each byRooms}}
+                <tr>
+                  <td>{{label}}</td>
+                  <td class="number">{{reservationsCount}}</td>
+                  <td class="number">{{nights}}</td>
+                  <td class="number">{{averageDailyRateFormatted}}</td>
+                  <td class="number">{{revenueFormatted}}</td>
+                </tr>
+              {{/each}}
+            {{else}}
+              <tr>
+                <td class="empty" colspan="5">Нет данных по комнатам</td>
+              </tr>
+            {{/if}}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section">
+        <h2>Разрез по месяцам</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Месяц</th>
+              <th class="number">Броней</th>
+              <th class="number">Ночей</th>
+              <th class="number">ADR</th>
+              <th class="number">Выручка</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#if byMonths.length}}
+              {{#each byMonths}}
+                <tr>
+                  <td>{{label}}</td>
+                  <td class="number">{{reservationsCount}}</td>
+                  <td class="number">{{nights}}</td>
+                  <td class="number">{{averageDailyRateFormatted}}</td>
+                  <td class="number">{{revenueFormatted}}</td>
+                </tr>
+              {{/each}}
+            {{else}}
+              <tr>
+                <td class="empty" colspan="5">Нет данных по месяцам</td>
+              </tr>
+            {{/if}}
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Брони в отчете</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Комната</th>
+              <th>Гость</th>
+              <th>Заезд</th>
+              <th>Выезд</th>
+              <th class="number">Ночей</th>
+              <th>Статус</th>
+              <th class="number">Выручка</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#if reservations.length}}
+              {{#each reservations}}
+                <tr>
+                  <td>№ {{roomNumber}}</td>
+                  <td>{{guestName}}</td>
+                  <td>{{checkInDate}}</td>
+                  <td>{{checkOutDate}}</td>
+                  <td class="number">{{nightsInPeriod}}</td>
+                  <td><span class="badge">{{statusName}}</span></td>
+                  <td class="number">{{revenueInPeriodFormatted}}</td>
+                </tr>
+              {{/each}}
+            {{else}}
+              <tr>
+                <td class="empty" colspan="7">По выбранным фильтрам броней нет</td>
+              </tr>
+            {{/if}}
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>

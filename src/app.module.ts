@@ -6,6 +6,7 @@ import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
 import { DocumentsModule } from './documents/documents.module';
 import { ReservationsModule } from './reservations/reservations.module';
+import { ReportsModule } from './reports/reports.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { SeedModule } from './seed/seed.module';
 import { UserRoleModule } from './userRole/userRole.module';
@@ -40,6 +41,7 @@ import { UserRoleModule } from './userRole/userRole.module';
         UserRoleModule,
         RoomsModule,
         ReservationsModule,
+        ReportsModule,
     ],
 })
 export class AppModule {}
