@@ -1,0 +1,469 @@
+@ApiSecurity('X-AUTH-TOKEN')
+@ApiTags('Уведомления')
+@UseGuards(AuthGuard)
+@Controller('alerts')
+export class AlertsController {
+    constructor(private readonly alertsService: AlertsService) {}
+
+    // ==================== ALERTS ====================
+    @Post()
+    @ApiOperation({ summary: 'Создать уведомление' })
+    @ApiResponse({ status: 201, type: Alerts })
+    createAlert(
+        @Body() dto: CreateAlertDto,
+        @GetUser() user: Users,
+    ): Promise<Alerts> {
+        return this.alertsService.createAlert(dto, user);
+    }
+
+    @Get('all')
+    @ApiOperation({ summary: 'Получить список уведомлений с пагинацией' })
+    @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+    @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+    @ApiResponse({
+        status: 200,
+        description: 'Объект с массивом данных и общим количеством',
+    })
+    findAllAlerts(@Query() pagination: PaginationDto, @GetUser() user: Users) {
+        return this.alertsService.findAllAlerts(pagination, user);
+    }
+
+    @Get('by-id/:id')
+    @ApiOperation({ summary: 'Получить уведомление по ID' })
+    @ApiParam({ name: 'id', type: String })
+    @ApiResponse({ status: 200, type: Alerts })
+    findOneAlert(@Param('id', ParseUUIDPipe) id: string): Promise<Alerts> {
+        return this.alertsService.findOneAlert(id);
+    }
+
+    @Patch('update/:id')
+    @ApiOperation({ summary: 'Обновить уведомление' })
+    @ApiParam({ name: 'id', type: String })
+    @ApiResponse({ status: 200, type: Alerts })
+    updateAlert(
+        @Param('id', ParseUUIDPipe) id: string,
+        @Body() dto: UpdateAlertDto,
+    ): Promise<Alerts> {
+        return this.alertsService.updateAlert(id, dto);
+    }
+
+    @Delete('delete/:id')
+    @ApiOperation({ summary: 'Удалить уведомление' })
+    @ApiParam({ name: 'id', type: String })
+    @ApiResponse({ status: 204 })
+    async removeAlert(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+        await this.alertsService.removeAlert(id);
+    }
+
+    // ==================== GLOBAL ALERTS ====================
+    @Post('global')
+    @ApiOperation({ summary: 'Создать глобальное уведомление' })
+    @ApiResponse({ status: 201, type: GlobalAlerts })
+    createGlobalAlert(
+        @Body() dto: CreateGlobalAlertDto,
+        @GetUser() user: Users,
+    ): Promise<GlobalAlerts> {
+        return this.alertsService.createGlobalAlert(dto, user);
+    }
+
+    @Get('global')
+    @ApiOperation({
+        summary: 'Получить список глобальных уведомлений с пагинацией',
+    })
+    @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+    @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+    @ApiResponse({
+        status: 200,
+        description: 'Объект с массивом данных и общим количеством',
+    })
+    findAllGlobalAlerts(@Query() pagination: PaginationDto) {
+        return this.alertsService.findAllGlobalAlerts(pagination);
+    }
+
+    @Get('global/:id')
+    @ApiOperation({ summary: 'Получить глобальное уведомление по ID' })
+    @ApiParam({ name: 'id', type: String })
+    @ApiResponse({ status: 200, type: GlobalAlerts })
+    findOneGlobalAlert(
+        @Param('id', ParseUUIDPipe) id: string,
+    ): Promise<GlobalAlerts> {
+        return this.alertsService.findOneGlobalAlert(id);
+    }
+
+    @Patch('global/:id')
+    @ApiOperation({ summary: 'Обновить глобальное уведомление' })
+    @ApiParam({ name: 'id', type: String })
+    @ApiResponse({ status: 200, type: GlobalAlerts })
+    updateGlobalAlert(
+        @Param('id', ParseUUIDPipe) id: string,
+        @Body() dto: UpdateGlobalAlertDto,
+    ): Promise<GlobalAlerts> {
+        return this.alertsService.updateGlobalAlert(id, dto);
+    }
+
+    @Delete('global/:id')
+    @ApiOperation({ summary: 'Удалить глобальное уведомление' })
+    @ApiParam({ name: 'id', type: String })
+    @ApiResponse({ status: 204 })
+    async removeGlobalAlert(
+        @Param('id', ParseUUIDPipe) id: string,
+    ): Promise<void> {
+        await this.alertsService.removeGlobalAlert(id);
+    }
+}
+// alerts.service.ts
+@Injectable()
+export class AlertsService {
+    constructor(
+        @InjectRepository(Alerts)
+        private alertsRepository: Repository<Alerts>,
+        @InjectRepository(GlobalAlerts)
+        private globalAlertsRepository: Repository<GlobalAlerts>,
+        @InjectRepository(AlertsType)
+        private alertsTypeRepository: Repository<AlertsType>,
+        @InjectRepository(Faculty)
+        private facultyRepository: Repository<Faculty>,
+        @InjectRepository(Department)
+        private departmentRepository: Repository<Department>,
+        @InjectRepository(Groups)
+        private groupsRepository: Repository<Groups>,
+        @InjectRepository(Users)
+        private usersRepository: Repository<Users>,
+    ) {}
+
+    // ==================== ALERTS ====================
+    async createAlert(dto: CreateAlertDto, user: Users): Promise<Alerts> {
+        const alert = new Alerts();
+        alert.title = dto.title;
+        alert.description = dto.description;
+        alert.documents = dto.documents;
+
+        const initiator = await this.usersRepository.findOne({
+            where: {
+                id: user.id,
+            },
+            relations: { group: { groupLeader: true }, roleType: true },
+        });
+        if (!initiator) throw new NotFoundException('Инициатор не найден');
+
+        if (initiator.roleType.id === 1) {
+            if (!initiator.group)
+                throw new NotFoundException('не найдена группа');
+            if (!initiator.group.groupLeader)
+                throw new NotFoundException('не найден староста группы');
+            if (initiator.group.groupLeader.id !== initiator.id) {
+                throw new ConflictException('пользователь не староста группы');
+            }
+            if (
+                dto.facultyId ||
+                dto.departmentId ||
+                dto.groupId !== initiator.group.id
+            )
+                throw new BadRequestException(
+                    'староста может делать уведомление только для своей группы',
+                );
+            alert.initiator = initiator;
+        } else {
+            alert.initiator = initiator;
+        }
+
+        // Проверка и установка связей
+        if (dto.alertsTypeId) {
+            const type = await this.alertsTypeRepository.findOneBy({
+                id: dto.alertsTypeId,
+            });
+            if (!type) throw new NotFoundException('Тип уведомления не найден');
+            alert.alertsType = type;
+        }
+
+        if (dto.facultyId) {
+            const faculty = await this.facultyRepository.findOneBy({
+                id: dto.facultyId,
+            });
+            if (!faculty) throw new NotFoundException('Факультет не найден');
+            alert.faculty = faculty;
+        }
+
+        if (dto.departmentId) {
+            const department = await this.departmentRepository.findOneBy({
+                id: dto.departmentId,
+            });
+            if (!department) throw new NotFoundException('Кафедра не найдена');
+            alert.department = department;
+        }
+
+        if (dto.groupId) {
+            const group = await this.groupsRepository.findOneBy({
+                id: dto.groupId,
+            });
+            if (!group) throw new NotFoundException('Группа не найдена');
+            alert.groups = group;
+        }
+
+        alert.initiator = initiator;
+
+        return this.alertsRepository.save(alert);
+    }
+
+    async findAllAlerts(
+        pagination: PaginationDto,
+        user: Users,
+    ): Promise<{ data: Alerts[]; total: number }> {
+        const { page = 1, limit = 10 } = pagination;
+        const skip = (page - 1) * limit;
+        const existUser = await this.usersRepository.findOne({
+            where: { id: user.id },
+            relations: {
+                faculty: true,
+                department: true,
+                group: true,
+                roleType: true,
+            },
+        });
+        if (!existUser)
+            throw new HttpException('user not found', HttpStatus.NOT_FOUND);
+
+        let where;
+        if (existUser.roleType.id === 1) {
+            if (!existUser.faculty || !existUser.department || !existUser.group)
+                throw new HttpException(
+                    'need to defined faculty | department and group ',
+                    HttpStatus.CONFLICT,
+                );
+            else {
+                where = [
+                    {
+                        faculty: {
+                            id: existUser.faculty.id,
+                        },
+                    },
+                    {
+                        department: {
+                            id: existUser.department.id,
+                        },
+                    },
+                    {
+                        groups: {
+                            id: existUser.group.id,
+                        },
+                    },
+                ];
+            }
+        } else {
+            where = {};
+        }
+
+        const [data, total] = await this.alertsRepository.findAndCount({
+            where,
+            relations: {
+                alertsType: true,
+                faculty: true,
+                department: true,
+                groups: true,
+                initiator: true,
+            },
+            order: { created_at: 'DESC' },
+            skip,
+            take: limit,
+        });
+
+        return { data, total };
+    }
+
+    async findOneAlert(id: string): Promise<Alerts> {
+        const alert = await this.alertsRepository.findOne({
+            where: { id },
+            relations: {
+                alertsType: true,
+                faculty: true,
+                department: true,
+                groups: true,
+                initiator: true,
+            },
+        });
+        if (!alert) throw new NotFoundException('Уведомление не найдено');
+        return alert;
+    }
+
+    async updateAlert(id: string, dto: UpdateAlertDto): Promise<Alerts> {
+        const alert = await this.findOneAlert(id);
+
+        if (dto.title !== undefined) alert.title = dto.title;
+        if (dto.description !== undefined) alert.description = dto.description;
+        if (dto.documents !== undefined) alert.documents = dto.documents;
+
+        if (dto.alertsTypeId !== undefined) {
+            const type = await this.alertsTypeRepository.findOneBy({
+                id: dto.alertsTypeId,
+            });
+            if (!type) throw new NotFoundException('Тип уведомления не найден');
+            alert.alertsType = type;
+        }
+
+        if (dto.facultyId !== undefined) {
+            if (dto.facultyId === null) {
+                alert.faculty = null;
+            } else {
+                const faculty = await this.facultyRepository.findOneBy({
+                    id: dto.facultyId,
+                });
+                if (!faculty)
+                    throw new NotFoundException('Факультет не найден');
+                alert.faculty = faculty;
+            }
+        }
+
+        if (dto.departmentId !== undefined) {
+            if (dto.departmentId === null) {
+                alert.department = null;
+            } else {
+                const department = await this.departmentRepository.findOneBy({
+                    id: dto.departmentId,
+                });
+                if (!department)
+                    throw new NotFoundException('Кафедра не найдена');
+                alert.department = department;
+            }
+        }
+
+        if (dto.groupId !== undefined) {
+            if (dto.groupId === null) {
+                alert.groups = null;
+            } else {
+                const group = await this.groupsRepository.findOneBy({
+                    id: dto.groupId,
+                });
+                if (!group) throw new NotFoundException('Группа не найдена');
+                alert.groups = group;
+            }
+        }
+
+        return this.alertsRepository.save(alert);
+    }
+
+    async removeAlert(id: string): Promise<void> {
+        const alert = await this.findOneAlert(id);
+        await this.alertsRepository.remove(alert);
+    }
+
+    // ==================== GLOBAL ALERTS ====================
+    async createGlobalAlert(
+        dto: CreateGlobalAlertDto,
+        user: Users,
+    ): Promise<GlobalAlerts> {
+        const globalAlert = new GlobalAlerts();
+        globalAlert.title = dto.title;
+        globalAlert.description = dto.description;
+        globalAlert.documents = dto.documents;
+
+        const initiator = await this.usersRepository.findOne({
+            where: {
+                id: user.id,
+            },
+            relations: { group: { groupLeader: true }, roleType: true },
+        });
+        if (!initiator) throw new NotFoundException('Инициатор не найден');
+        if (initiator.roleType.id === 1)
+            throw new ForbiddenException(
+                'Глобальные уведомления только для админов',
+            );
+        globalAlert.initiator = initiator;
+
+        return this.globalAlertsRepository.save(globalAlert);
+    }
+
+    async findAllGlobalAlerts(
+        pagination: PaginationDto,
+    ): Promise<{ data: GlobalAlerts[]; total: number }> {
+        const { page = 1, limit = 10 } = pagination;
+        const skip = (page - 1) * limit;
+
+        const [data, total] = await this.globalAlertsRepository.findAndCount({
+            relations: { initiator: true },
+            order: { created_at: 'DESC' },
+            skip,
+            take: limit,
+        });
+
+        return { data, total };
+    }
+
+    async findOneGlobalAlert(id: string): Promise<GlobalAlerts> {
+        const alert = await this.globalAlertsRepository.findOne({
+            where: { id },
+            relations: { initiator: true },
+        });
+        if (!alert)
+            throw new NotFoundException('Глобальное уведомление не найдено');
+        return alert;
+    }
+
+    async updateGlobalAlert(
+        id: string,
+        dto: UpdateGlobalAlertDto,
+    ): Promise<GlobalAlerts> {
+        const alert = await this.findOneGlobalAlert(id);
+
+        if (dto.title !== undefined) alert.title = dto.title;
+        if (dto.description !== undefined) alert.description = dto.description;
+        if (dto.documents !== undefined) alert.documents = dto.documents;
+
+        return this.globalAlertsRepository.save(alert);
+    }
+
+    async removeGlobalAlert(id: string): Promise<void> {
+        const alert = await this.findOneGlobalAlert(id);
+        await this.globalAlertsRepository.remove(alert);
+    }
+}
+import { Users } from 'src/auth/entities/users.entity';
+import { Department } from 'src/groups/entities/department.entity';
+import { Faculty } from 'src/groups/entities/faculty.entity';
+import { Groups } from 'src/groups/entities/group.entity';
+import {
+    Column,
+    CreateDateColumn,
+    Entity,
+    JoinColumn,
+    ManyToOne,
+    PrimaryGeneratedColumn,
+} from 'typeorm';
+import { AlertsType } from './alerts-type.entity';
+
+@Entity()
+export class Alerts {
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
+
+    @ManyToOne(() => AlertsType)
+    @JoinColumn()
+    alertsType: AlertsType;
+
+    @Column()
+    title: string;
+
+    @Column({ type: 'text' })
+    description: string;
+
+    @Column('text', { array: true, default: [] })
+    documents: string[];
+
+    @ManyToOne(() => Faculty)
+    @JoinColumn()
+    faculty: Faculty | null;
+
+    @ManyToOne(() => Department)
+    @JoinColumn()
+    department: Department | null;
+
+    @ManyToOne(() => Groups)
+    @JoinColumn()
+    groups: Groups | null;
+
+    @ManyToOne(() => Users)
+    @JoinColumn()
+    initiator: Users;
+
+    @CreateDateColumn()
+    created_at: Date;
+}
