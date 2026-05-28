@@ -1,0 +1,442 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UserRoleType } from 'src/auth/entities/user-roles.entity';
+import { OrderStatus } from 'src/orders/entities/order-status.entity';
+import { PizzaType } from 'src/pizza/entities/pizza-type.entity';
+import { Repository } from 'typeorm';
+
+@Injectable()
+export class SeedService {
+    constructor(
+        @InjectRepository(OrderStatus)
+        private readonly orderStatusRepository: Repository<OrderStatus>,
+        @InjectRepository(PizzaType)
+        private readonly pizzaTypeRepository: Repository<PizzaType>,
+        @InjectRepository(UserRoleType)
+        private readonly userRoleTypeRepository: Repository<UserRoleType>,
+    ) {
+        this.runSeeds();
+    }
+
+    async runSeeds() {
+        await this.productCategory();
+        await this.orderStatus();
+        await this.userRoleType();
+    }
+
+    async userRoleType() {
+        await this.userRoleTypeRepository.save([
+            this.userRoleTypeRepository.create({
+                id: 1,
+                name: 'user',
+            }),
+            this.userRoleTypeRepository.create({
+                id: 2,
+                name: 'admin',
+            }),
+        ]);
+    }
+
+    async productCategory() {
+        await this.pizzaTypeRepository.save([
+            this.pizzaTypeRepository.create({
+                id: 1,
+                name: 'Веганская',
+                color: '19ff19',
+            }),
+            this.pizzaTypeRepository.create({
+                id: 2,
+                name: 'Острая',
+                color: '900020',
+            }),
+            this.pizzaTypeRepository.create({
+                id: 3,
+                name: 'Очень острая',
+                color: '660000',
+            }),
+            this.pizzaTypeRepository.create({
+                id: 4,
+                name: 'Сезонная',
+                color: '1047c7',
+            }),
+        ]);
+    }
+
+    async orderStatus() {
+        const statuses = [
+            { id: 1, name: 'Ожидает подтверждения' },
+            { id: 2, name: 'Подтвержден' },
+            { id: 3, name: 'Готовится' },
+            { id: 4, name: 'Готов к выдаче' },
+            { id: 5, name: 'Выдан' },
+            { id: 6, name: 'Отменен' },
+        ];
+
+        for (const status of statuses) {
+            const existing = await this.orderStatusRepository.findOneBy({
+                id: status.id,
+            });
+            if (!existing) {
+                await this.orderStatusRepository.save(status);
+            }
+        }
+    }
+}
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserRoleType } from 'src/auth/entities/user-roles.entity';
+import { OrderStatus } from 'src/orders/entities/order-status.entity';
+import { PizzaSize } from 'src/pizza/entities/pizza-size.entity';
+import { PizzaType } from 'src/pizza/entities/pizza-type.entity';
+import { SeedService } from './seed.service';
+
+@Module({
+    imports: [
+        TypeOrmModule.forFeature([
+            UserRoleType,
+            OrderStatus,
+            PizzaType,
+            PizzaSize,
+        ]),
+    ],
+    providers: [SeedService],
+})
+export class SeedModule {}
+import { ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+    const app = await NestFactory.create(AppModule);
+
+    app.enableCors({ origin: true });
+
+    app.useGlobalPipes(
+        new ValidationPipe({
+            whitelist: true, // Удаляет все неописанные поля
+            forbidNonWhitelisted: false, // Выбрасывает ошибку для неизвестных полей
+            transform: true,
+            transformOptions: {
+                exposeUnsetFields: false,
+                enableImplicitConversion: true,
+            },
+        }),
+    );
+
+    // Swagger виден только если это не прод
+    const config = new DocumentBuilder()
+        .setTitle('Diplom')
+        .setDescription('')
+        .setVersion('1.0')
+        .addApiKey(
+            {
+                type: 'apiKey',
+                name: 'Authorization',
+                in: 'header',
+                description: 'Enter your token',
+            },
+            'X-AUTH-TOKEN',
+        )
+        .build();
+    const documentFactory = () => SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, documentFactory);
+    await app.listen(process.env.PORT ?? 3000);
+}
+bootstrap();
+import { ApiProperty } from '@nestjs/swagger';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { UserRoleType } from './user-roles.entity';
+
+@Entity()
+export class Users {
+  @ApiProperty()
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ select: false })
+  password: string;
+
+  @ApiProperty()
+  @Column({ unique: true })
+  email: string;
+
+  @ApiProperty()
+  @Column()
+  name: string;
+
+  @ApiProperty()
+  @Column()
+  surname: string;
+
+  @ApiProperty()
+  @Column()
+  phone: string;
+
+  @ApiProperty()
+  @ManyToOne(() => UserRoleType)
+  @JoinColumn()
+  roleType: UserRoleType;
+
+  @ApiProperty()
+  @CreateDateColumn()
+  created_at: Date;
+}
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { UserRoleService } from 'src/userRole/userRole.service';
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+    constructor(
+        private readonly reflector: Reflector,
+        private readonly userRoleService: UserRoleService,
+    ) {}
+
+    async canActivate(context: ExecutionContext): Promise<boolean> {
+        const roles = this.reflector.get<string[]>(
+            'roles',
+            context.getHandler(),
+        );
+
+        if (!roles) {
+            return false;
+        }
+
+        const request = context.switchToHttp().getRequest();
+        const user = request.user;
+
+        const userRole = await this.userRoleService.getUserRole(user.id);
+
+        return roles.some((role: string) => {
+            return role === userRole;
+        });
+    }
+}
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+
+export const GetUser = createParamDecorator(
+  (data: unknown, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
+    return request.user;
+  },
+);
+import {
+  isUUID,
+  registerDecorator,
+  ValidationArguments,
+  ValidationOptions,
+} from 'class-validator';
+
+export function IsUUIDArray(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      name: 'isUUIDArray',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          return (
+            Array.isArray(value) &&
+            value.every((item) => typeof item === 'string' && isUUID(item))
+          );
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `${args.property} must be an array of UUIDs`;
+        },
+      },
+    });
+  };
+}import { SetMetadata } from '@nestjs/common';
+
+export const Roles = (...roles: string[]) => SetMetadata('roles', roles);import {
+    Column,
+    Entity,
+    JoinColumn,
+    ManyToOne,
+    OneToMany,
+    PrimaryGeneratedColumn,
+} from 'typeorm';
+import { PizzaSizeRelation } from './pizza-size-relations.entity';
+import { PizzaType } from './pizza-type.entity';
+
+@Entity()
+export class Pizza {
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
+
+    @ManyToOne(() => PizzaType)
+    @JoinColumn()
+    pizzaType: PizzaType;
+
+    @OneToMany(
+        () => PizzaSizeRelation,
+        (pizzaSizeRelation) => pizzaSizeRelation.pizza,
+    )
+    pizzaSizeRelation: PizzaSizeRelation;
+
+    @Column()
+    name: string;
+
+    @Column()
+    description: string;
+
+    @Column()
+    structure: string;
+
+    @Column('decimal', { precision: 4, scale: 2, nullable: true })
+    proteins: number;
+
+    @Column('decimal', { precision: 4, scale: 2, nullable: true })
+    fats: number;
+
+    @Column('decimal', { precision: 4, scale: 2, nullable: true })
+    carbohydrates: number;
+
+    @Column('decimal', { precision: 4, scale: 2, nullable: true })
+    kilocalories: number;
+
+    @Column('decimal', { precision: 8, scale: 2, nullable: true })
+    kilojoules: number;
+
+    @Column({ default: 'uploads/default-pizza.png' })
+    photo: string;
+}
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+
+export class CreatePizzaDto {
+    @ApiProperty({ example: 1 })
+    @IsNotEmpty()
+    @IsNumber()
+    pizzaType: any;
+
+    @ApiProperty()
+    @IsNotEmpty()
+    @IsString()
+    name: string;
+
+    @ApiProperty()
+    @IsNotEmpty()
+    @IsString()
+    description: string;
+
+    @ApiProperty({ example: 'Тесто, соус, помидоры, колбаса' })
+    @IsNotEmpty()
+    @IsString()
+    structure: string;
+
+    @ApiProperty({ example: 1 })
+    @IsNotEmpty()
+    @IsNumber()
+    proteins: number;
+
+    @ApiProperty({ example: 1 })
+    @IsNotEmpty()
+    @IsNumber()
+    fats: number;
+
+    @ApiProperty({ example: 1 })
+    @IsNotEmpty()
+    @IsNumber()
+    carbohydrates: number;
+
+    @ApiProperty({ example: 1 })
+    @IsNotEmpty()
+    @IsNumber()
+    kilocalories: number;
+
+    @ApiProperty({ example: 1 })
+    @IsNotEmpty()
+    @IsNumber()
+    kilojoules: number;
+
+    @ApiProperty({ example: 1 })
+    @IsOptional()
+    @IsNotEmpty()
+    @IsString()
+    photo?: string;
+}
+import { Controller, Get, Param, ParseUUIDPipe } from '@nestjs/common';
+import { ApiSecurity } from '@nestjs/swagger';
+import { PizzaService } from './pizza.service';
+
+@ApiSecurity('X-AUTH-TOKEN')
+@Controller('pizza')
+export class PizzaController {
+    constructor(private readonly pizzaService: PizzaService) {}
+
+    @Get('all-pizza')
+    async getPizza() {
+        return this.pizzaService.getPizza();
+    }
+
+    @Get('by-id/:id')
+    async getPizzaById(@Param('id', ParseUUIDPipe) id: string) {
+        return this.pizzaService.getPizzaById(id);
+    }
+}
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { PizzaAdditiveRelation } from './entities/pizza-additive-relations.entity';
+import { PizzaAdditive } from './entities/pizza-additive.entity';
+import { PizzaSizeRelation } from './entities/pizza-size-relations.entity';
+import { PizzaSize } from './entities/pizza-size.entity';
+import { PizzaType } from './entities/pizza-type.entity';
+import { Pizza } from './entities/pizza.entity';
+
+@Injectable()
+export class PizzaService {
+    constructor(
+        @InjectRepository(Pizza)
+        private readonly pizzaRepository: Repository<Pizza>,
+        @InjectRepository(PizzaAdditiveRelation)
+        private readonly pizzaAdditiveRelationRepository: Repository<PizzaAdditiveRelation>,
+        @InjectRepository(PizzaAdditive)
+        private readonly pizzaAdditiveRepository: Repository<PizzaAdditive>,
+        @InjectRepository(PizzaSizeRelation)
+        private readonly pizzaSizeRelationRepository: Repository<PizzaSizeRelation>,
+        @InjectRepository(PizzaSize)
+        private readonly pizzaSizeRepository: Repository<PizzaSize>,
+        @InjectRepository(PizzaType)
+        private readonly pizzaTypeRepository: Repository<PizzaType>,
+    ) {}
+
+    async getPizza() {
+        return this.pizzaRepository.find({
+            relations: {
+                pizzaType: true,
+                pizzaSizeRelation: {
+                    pizzaSize: true,
+                    pizzaAdditiveRelation: {
+                        pizzaAdditive: true,
+                    },
+                },
+            },
+        });
+    }
+
+    async getPizzaById(id: string) {
+        return this.pizzaRepository.findOne({
+            where: { id },
+            relations: {
+                pizzaType: true,
+                pizzaSizeRelation: {
+                    pizzaSize: true,
+                    pizzaAdditiveRelation: {
+                        pizzaAdditive: true,
+                    },
+                },
+            },
+        });
+    }
+}
