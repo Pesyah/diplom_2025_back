@@ -1,0 +1,589 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UserRoleType } from 'src/auth/entities/user-roles.entity';
+import { Users } from 'src/auth/entities/users.entity';
+import { ReservationStatus } from 'src/reservations/entities/reservation-status.entity';
+import { RoomsStatus } from 'src/rooms/entities/room-status.entity';
+import { RoomsType } from 'src/rooms/entities/room-type.entity';
+import { Repository } from 'typeorm';
+
+@Injectable()
+export class SeedService {
+    constructor(
+        @InjectRepository(UserRoleType)
+        private readonly userRoleTypeRepository: Repository<UserRoleType>,
+        @InjectRepository(ReservationStatus)
+        private readonly reservationStatusRepository: Repository<ReservationStatus>,
+        @InjectRepository(RoomsType)
+        private readonly roomsTypeRepository: Repository<RoomsType>,
+        @InjectRepository(RoomsStatus)
+        private readonly roomsStatusRepository: Repository<RoomsStatus>,
+        @InjectRepository(Users)
+        private readonly usersRepository: Repository<Users>,
+    ) {
+        this.runSeeds();
+    }
+
+    async runSeeds() {
+        await this.userRoleType();
+        await this.reservationStatus();
+        await this.roomsType();
+        await this.roomsStatus();
+        await this.baseUser();
+    }
+
+    async baseUser() {
+        const existUser = await this.usersRepository.findOneBy({
+            email: 'baseMail@mail.ru',
+        });
+        if (existUser) return;
+
+        const baseRole = await this.userRoleTypeRepository.findOneBy({ id: 3 });
+        if (!baseRole) return;
+        await this.usersRepository.save(
+            this.usersRepository.create({
+                email: 'baseMail@mail.ru',
+                name: 'baseName',
+                surname: 'baseSurname',
+                password:
+                    '$2b$12$Uc3bPu7UG9ITKShsK5DibOpz6ZS/Eo5Vi9SS6xbjBkoqGUZe9oWYe', // string
+                phone: '+79999999999',
+                roleType: baseRole, // делаю его сразу админом
+            }),
+        );
+    }
+
+    async userRoleType() {
+        await this.userRoleTypeRepository.save([
+            this.userRoleTypeRepository.create({
+                id: 1,
+                name: 'guest',
+            }),
+            this.userRoleTypeRepository.create({
+                id: 2,
+                name: 'manager',
+            }),
+            this.userRoleTypeRepository.create({
+                id: 3,
+                name: 'admin',
+            }),
+        ]);
+    }
+
+    async reservationStatus() {
+        await this.reservationStatusRepository.save([
+            this.reservationStatusRepository.create({
+                id: 1,
+                name: 'Ожидает подтверждения',
+            }),
+            this.reservationStatusRepository.create({
+                id: 2,
+                name: 'Подтверждено',
+            }),
+            this.reservationStatusRepository.create({
+                id: 3,
+                name: 'Заселено',
+            }),
+            this.reservationStatusRepository.create({
+                id: 4,
+                name: 'Выселено',
+            }),
+            this.reservationStatusRepository.create({
+                id: 5,
+                name: 'Отменено',
+            }),
+        ]);
+    }
+
+    async roomsType() {
+        await this.roomsTypeRepository.save([
+            this.roomsTypeRepository.create({
+                id: 1,
+                name: 'Стандарт',
+                description: 'Одноместный номер с базовыми удобствами',
+            }),
+            this.roomsTypeRepository.create({
+                id: 2,
+                name: 'Делюкс',
+                description: 'Двухместный номер повышенной комфортности',
+            }),
+            this.roomsTypeRepository.create({
+                id: 3,
+                name: 'Люкс',
+                description: 'Двухкомнатный номер класса люкс с гостиной зоной',
+            }),
+            this.roomsTypeRepository.create({
+                id: 4,
+                name: 'Семейный',
+                description:
+                    'Просторный номер для размещения семьи до 4 человек',
+            }),
+        ]);
+    }
+
+    async roomsStatus() {
+        await this.roomsStatusRepository.save([
+            this.roomsStatusRepository.create({
+                id: 1,
+                name: 'Доступен',
+                description: 'Номер свободен и готов к заселению',
+            }),
+            this.roomsStatusRepository.create({
+                id: 2,
+                name: 'Занят',
+                description: 'В номере проживают гости',
+            }),
+            this.roomsStatusRepository.create({
+                id: 3,
+                name: 'Обслуживание',
+                description: 'Номер на техническом обслуживании или ремонте',
+            }),
+        ]);
+    }
+}
+import {
+    Body,
+    Controller,
+    Get,
+    Param,
+    ParseUUIDPipe,
+    Patch,
+    Post,
+    UseGuards,
+} from '@nestjs/common';
+import { ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { GetUser } from 'src/auth/decorators/get-user.decorator';
+
+import { AuthGuard } from 'src/auth/auth.guard';
+import { Roles } from 'src/auth/decorators/role.decorator';
+import { Users } from 'src/auth/entities/users.entity';
+import { RolesGuard } from 'src/auth/guard/rolesGuard';
+import { CancelReservationDto } from './dto/cancel-reservation.dto';
+import { CreateReservationDto } from './dto/create-reservation.dto';
+import { UpdateReservationDto } from './dto/update-reservation.dto';
+import { ReservationsService } from './reservations.service';
+
+@ApiSecurity('X-AUTH-TOKEN')
+@ApiTags('Reservations')
+@Controller('reservations')
+export class ReservationsController {
+    constructor(private readonly reservationsService: ReservationsService) {}
+
+    // ======================== GET ========================
+
+    @Get('all')
+    @ApiOperation({ summary: 'Получить все бронирования (admin, manager)' })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager')
+    async findAll() {
+        return this.reservationsService.findAll();
+    }
+
+    @Get('my')
+    @ApiOperation({ summary: 'Получить свои бронирования (guest)' })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager', 'guest')
+    async findMy(@GetUser() user: Users) {
+        return this.reservationsService.findByUser(user.id);
+    }
+
+    @Get('by-id/:id')
+    @ApiOperation({ summary: 'Получить бронирование по ID' })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager', 'guest')
+    async findById(
+        @Param('id', ParseUUIDPipe) id: string,
+        @GetUser() user: Users,
+    ) {
+        // Для guest — проверяем принадлежность, для admin/manager — нет
+        const userId = user.roleType?.id === 1 ? user.id : undefined;
+        return this.reservationsService.findById(id, userId);
+    }
+
+    // ======================== POST ========================
+
+    @Post()
+    @ApiOperation({ summary: 'Создать бронирование (guest)' })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager', 'guest')
+    async create(@Body() dto: CreateReservationDto, @GetUser() user: Users) {
+        return this.reservationsService.create(dto, user.id);
+    }
+
+    // ======================== PATCH ========================
+
+    @Patch('update/:id')
+    @ApiOperation({ summary: 'Редактировать бронирование (admin, manager)' })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager')
+    async update(
+        @Param('id', ParseUUIDPipe) id: string,
+        @Body() dto: UpdateReservationDto,
+    ) {
+        return this.reservationsService.update(id, dto);
+    }
+
+    @Patch('confirm/:id')
+    @ApiOperation({ summary: 'Подтвердить бронирование (admin, manager)' })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager')
+    async confirm(@Param('id', ParseUUIDPipe) id: string) {
+        return this.reservationsService.confirm(id);
+    }
+
+    @Patch('check-in/:id')
+    @ApiOperation({ summary: 'Заселить гостя (admin, manager)' })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager')
+    async checkIn(@Param('id', ParseUUIDPipe) id: string) {
+        return this.reservationsService.checkIn(id);
+    }
+
+    @Patch('check-out/:id')
+    @ApiOperation({ summary: 'Выселить гостя (admin, manager)' })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager')
+    async checkOut(@Param('id', ParseUUIDPipe) id: string) {
+        return this.reservationsService.checkOut(id);
+    }
+
+    @Patch('cancel/:id')
+    @ApiOperation({
+        summary:
+            'Отменить бронирование (guest — только своё, admin/manager — любое)',
+    })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager', 'guest')
+    async cancel(
+        @Param('id', ParseUUIDPipe) id: string,
+        @Body() dto: CancelReservationDto,
+        @GetUser() user: Users,
+    ) {
+        const userId = user.roleType?.id === 1 ? user.id : undefined;
+        return this.reservationsService.cancel(id, dto, userId);
+    }
+}
+import { Column, Entity, PrimaryColumn } from 'typeorm';
+
+@Entity()
+export class ReservationStatus {
+    @PrimaryColumn()
+    id: number;
+
+    @Column()
+    name: string;
+}
+import { Users } from 'src/auth/entities/users.entity';
+import { Rooms } from 'src/rooms/entities/room.entity';
+import {
+    Column,
+    CreateDateColumn,
+    Entity,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+    PrimaryGeneratedColumn,
+    UpdateDateColumn,
+} from 'typeorm';
+import { ReservationStatus } from './reservation-status.entity';
+
+@Entity()
+export class Reservation {
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
+
+    @ManyToOne(() => ReservationStatus)
+    @JoinColumn()
+    reservationStatus: ReservationStatus;
+
+    @ManyToOne(() => Rooms)
+    @JoinColumn()
+    room: Rooms;
+
+    // Основной гость (на кого оформлено бронирование)
+    @ManyToOne(() => Users)
+    @JoinColumn()
+    mainGuest: Users;
+
+    // Основные жители
+    @ManyToMany(() => Users)
+    @JoinTable({ name: 'reservation_and_users' })
+    guests: Users[];
+
+    @Column()
+    checkInDate: Date;
+
+    @Column()
+    checkOutDate: Date;
+
+    @Column('decimal', { precision: 10, scale: 2 })
+    totalPrice: number;
+
+    @Column({ nullable: true })
+    numberOfGuests: number;
+
+    @Column('text', { nullable: true })
+    specialRequests: string;
+
+    @Column('text', { nullable: true })
+    cancellationReason: string;
+
+    @CreateDateColumn()
+    createdAt: Date;
+
+    @UpdateDateColumn()
+    updatedAt: Date;
+}
+<!-- src/App.vue -->
+<template>
+  <div class="min-vh-100 bg-light d-flex flex-column">
+    <!-- Навигация -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+      <div class="container">
+        <router-link
+          to="/"
+          class="navbar-brand fw-bold d-flex align-items-center gap-2"
+        >
+          <span class="text-warning fs-4">⚡</span>
+          <span>TechStore</span>
+        </router-link>
+
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
+            <!-- Админ меню -->
+            <template v-if="isAuthenticated && isAdmin">
+              <li class="nav-item">
+                <router-link to="/admin/dashboard" class="nav-link">
+                  Дашборд
+                </router-link>
+              </li>
+              <li class="nav-item dropdown">
+                <a
+                  class="nav-link dropdown-toggle"
+                  href="#"
+                  role="button"
+                  data-bs-toggle="dropdown"
+                >
+                  📦 Продукты
+                </a>
+                <ul class="dropdown-menu">
+                  <li>
+                    <router-link to="/admin/products" class="dropdown-item">
+                      Список продуктов
+                    </router-link>
+                  </li>
+                  <li>
+                    <router-link
+                      to="/admin/products/create"
+                      class="dropdown-item"
+                    >
+                      Создать продукт
+                    </router-link>
+                  </li>
+                </ul>
+              </li>
+              <li class="nav-item">
+                <router-link to="/admin/orders" class="nav-link"
+                  >📋 Заказы</router-link
+                >
+              </li>
+              <li class="nav-item dropdown">
+                <a
+                  class="nav-link dropdown-toggle"
+                  href="#"
+                  role="button"
+                  data-bs-toggle="dropdown"
+                >
+                  🏷️ Бренды
+                </a>
+                <ul class="dropdown-menu">
+                  <li>
+                    <router-link to="/admin/brands" class="dropdown-item">
+                      Список брендов
+                    </router-link>
+                  </li>
+                  <li>
+                    <router-link
+                      to="/admin/brands/create"
+                      class="dropdown-item"
+                    >
+                      Создать бренд
+                    </router-link>
+                  </li>
+                </ul>
+              </li>
+              <li class="nav-item dropdown">
+                <a
+                  class="nav-link dropdown-toggle"
+                  href="#"
+                  role="button"
+                  data-bs-toggle="dropdown"
+                >
+                  📁 Категории
+                </a>
+                <ul class="dropdown-menu">
+                  <li>
+                    <router-link to="/admin/categories" class="dropdown-item">
+                      Список категорий
+                    </router-link>
+                  </li>
+                  <li>
+                    <router-link
+                      to="/admin/categories/create"
+                      class="dropdown-item"
+                    >
+                      Создать категорию
+                    </router-link>
+                  </li>
+                </ul>
+              </li>
+              <li class="nav-item">
+                <router-link to="/admin/create-admin" class="nav-link">
+                  👤 Создать админа
+                </router-link>
+              </li>
+            </template>
+
+            <!-- Клиентское меню -->
+            <template v-else-if="isAuthenticated && !isAdmin">
+              <li class="nav-item">
+                <router-link to="/catalog" class="nav-link"
+                  >Каталог</router-link
+                >
+              </li>
+              <li class="nav-item">
+                <router-link to="/cart" class="nav-link">
+                  🛒 Корзина
+                </router-link>
+              </li>
+              <li class="nav-item">
+                <router-link to="/orders" class="nav-link">Заказы</router-link>
+              </li>
+            </template>
+
+            <!-- Гостевое меню -->
+            <template v-else>
+              <li class="nav-item">
+                <router-link to="/catalog" class="nav-link"
+                  >Каталог</router-link
+                >
+              </li>
+            </template>
+          </ul>
+
+          <ul class="navbar-nav">
+            <li v-if="isAuthenticated" class="nav-item dropdown">
+              <a
+                class="nav-link dropdown-toggle"
+                href="#"
+                role="button"
+                data-bs-toggle="dropdown"
+              >
+                👤 {{ user?.name || 'Профиль' }}
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <router-link to="/profile" class="dropdown-item">
+                    Мой профиль
+                  </router-link>
+                </li>
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                  <button @click="logout" class="dropdown-item text-danger">
+                    Выйти
+                  </button>
+                </li>
+              </ul>
+            </li>
+            <li v-else class="nav-item">
+              <router-link to="/login" class="btn btn-warning btn-sm ms-2">
+                Войти
+              </router-link>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Контент -->
+    <main class="py-4 flex-grow-1">
+      <RouterView />
+    </main>
+
+    <!-- Футер -->
+    <footer class="bg-dark text-light py-4 mt-auto">
+      <div class="container text-center">
+        <p class="mb-0">© 2026 TechStore. Все права защищены.</p>
+      </div>
+    </footer>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { useUserStore } from '@/stores/userStore';
+import { computed } from 'vue';
+import { RouterView, useRouter } from 'vue-router';
+
+const router = useRouter();
+const userStore = useUserStore();
+
+const isAuthenticated = computed(() => userStore.isAuthenticated);
+const user = computed(() => userStore.user);
+const isAdmin = computed(() => user.value?.roleType?.name === 'admin');
+
+const logout = () => {
+  userStore.clear();
+  router.push('/login');
+};
+</script>
+
+<style>
+:root {
+  --bs-warning: #ffc107;
+  --bs-warning-rgb: 255, 193, 7;
+}
+
+.btn-warning {
+  background-color: #ffc107;
+  border-color: #ffc107;
+  color: #000;
+}
+
+.btn-warning:hover {
+  background-color: #ffb300;
+  border-color: #ffb300;
+  color: #000;
+}
+
+.navbar-brand {
+  font-size: 1.5rem;
+}
+
+.card {
+  border: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.text-warning {
+  color: #ffc107 !important;
+}
+
+.bg-warning {
+  background-color: #ffc107 !important;
+}
+</style>
