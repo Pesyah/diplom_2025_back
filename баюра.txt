@@ -587,3 +587,546 @@ const logout = () => {
   background-color: #ffc107 !important;
 }
 </style>
+import {
+    BadRequestException,
+    Controller,
+    Post,
+    UploadedFile,
+    UseGuards,
+    UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBody, ApiConsumes, ApiSecurity } from '@nestjs/swagger';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { GetUser } from 'src/auth/decorators/get-user.decorator';
+import { Users } from '../auth/entities/users.entity';
+import { DocumentsService } from './documents.service';
+import { FileRequeryDto } from './dto/create-document.dto';
+
+@ApiSecurity('X-AUTH-TOKEN')
+@Controller('documents')
+export class DocumentsController {
+    constructor(private readonly documentsService: DocumentsService) {}
+
+    @UseGuards(AuthGuard)
+    @Post('upload')
+    @ApiBody({ type: FileRequeryDto })
+    @ApiConsumes('multipart/form-data')
+    @UseInterceptors(
+        FileInterceptor('file', {
+            limits: { fileSize: 10 * 1024 * 1024 },
+        }),
+    )
+    async uploadFile(
+        @UploadedFile() file: Express.Multer.File,
+        @GetUser() user: Users,
+    ) {
+        if (!file) {
+            throw new BadRequestException('Файл не загружен');
+        }
+        return this.documentsService.create(file, user.id);
+    }
+}
+import {
+    BadRequestException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { Repository } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
+import { Document } from './entities/document.entity';
+
+@Injectable()
+export class DocumentsService {
+    private readonly uploadDir = 'uploads/documents';
+
+    constructor(
+        @InjectRepository(Document)
+        private documentRepository: Repository<Document>,
+    ) {
+        this.ensureUploadDir();
+    }
+
+    private async ensureUploadDir() {
+        try {
+            await fs.access(this.uploadDir);
+        } catch {
+            await fs.mkdir(this.uploadDir, { recursive: true });
+        }
+    }
+
+    async create(file: Express.Multer.File, userId: string): Promise<Document> {
+        try {
+            const fileExtension = path.extname(file.originalname);
+            const uniqueFilename = `${uuidv4()}${fileExtension}`;
+            const filePath = path.join(this.uploadDir, uniqueFilename);
+
+            await fs.writeFile(filePath, file.buffer);
+
+            const document = this.documentRepository.create({
+                filename: uniqueFilename,
+                originalName: file.originalname,
+                mimeType: file.mimetype,
+                size: file.size,
+                path: filePath,
+                users: { id: userId } as any,
+            });
+
+            return await this.documentRepository.save(document);
+        } catch (error) {
+            throw new BadRequestException(
+                `Ошибка при сохранении файла: ${error.message}`,
+            );
+        }
+    }
+
+    async getUserDocuments(
+        userId: string,
+        page: number,
+        limit: number,
+    ): Promise<{ items: Document[]; total: number }> {
+        const [items, total] = await this.documentRepository.findAndCount({
+            where: { users: { id: userId } },
+            order: { createdAt: 'DESC' },
+            skip: (page - 1) * limit,
+            take: limit,
+        });
+
+        return { items, total };
+    }
+
+    async findOne(id: string): Promise<Document> {
+        const document = await this.documentRepository.findOne({
+            where: { id },
+            relations: {
+                users: true,
+            },
+        });
+
+        if (!document) {
+            throw new NotFoundException('Документ не найден');
+        }
+
+        return document;
+    }
+
+    async remove(id: string, userId: string): Promise<void> {
+        const document = await this.findOne(id);
+
+        try {
+            await fs.unlink(document.path);
+        } catch (error) {
+            console.error(`Ошибка при удалении файла: ${error.message}`);
+        }
+
+        await this.documentRepository.remove(document);
+    }
+}
+import {
+    BadRequestException,
+    ForbiddenException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Users } from 'src/auth/entities/users.entity';
+import { Rooms } from 'src/rooms/entities/room.entity';
+import { RoomsService } from 'src/rooms/rooms.service';
+import { In, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
+import { CancelReservationDto } from './dto/cancel-reservation.dto';
+import { CreateReservationDto } from './dto/create-reservation.dto';
+import { UpdateReservationDto } from './dto/update-reservation.dto';
+import { ReservationStatus } from './entities/reservation-status.entity';
+import { Reservation } from './entities/reservation.entity';
+
+@Injectable()
+export class ReservationsService {
+    constructor(
+        @InjectRepository(Reservation)
+        private readonly reservationRepository: Repository<Reservation>,
+        @InjectRepository(ReservationStatus)
+        private readonly reservationStatusRepository: Repository<ReservationStatus>,
+        @InjectRepository(Rooms)
+        private readonly roomsRepository: Repository<Rooms>,
+        @InjectRepository(Users)
+        private readonly usersRepository: Repository<Users>,
+
+        private readonly roomsService: RoomsService,
+    ) {}
+
+    // ======================== GET ========================
+
+    async findAll() {
+        return this.reservationRepository.find({
+            relations: {
+                reservationStatus: true,
+                room: {
+                    roomsType: true,
+                    roomsStatus: true,
+                    amenities: true,
+                },
+                mainGuest: {
+                    roleType: true,
+                },
+                guests: {
+                    roleType: true,
+                },
+            },
+            withDeleted: true,
+        });
+    }
+
+    async findByUser(userId: string) {
+        return this.reservationRepository.find({
+            where: { mainGuest: { id: userId } },
+            relations: {
+                reservationStatus: true,
+                room: {
+                    roomsType: true,
+                    roomsStatus: true,
+                    amenities: true,
+                },
+                mainGuest: {
+                    roleType: true,
+                },
+                guests: {
+                    roleType: true,
+                },
+            },
+            withDeleted: true,
+        });
+    }
+
+    async findById(id: string, userId?: string) {
+        const reservation = await this.reservationRepository.findOne({
+            where: { id },
+            relations: {
+                reservationStatus: true,
+                room: {
+                    roomsType: true,
+                    roomsStatus: true,
+                    amenities: true,
+                },
+                mainGuest: {
+                    roleType: true,
+                },
+                guests: {
+                    roleType: true,
+                },
+            },
+            withDeleted: true,
+        });
+
+        if (!reservation) {
+            throw new NotFoundException('Бронирование не найдено');
+        }
+
+        // Если передан userId — проверяем, что это бронь этого пользователя
+        if (userId && reservation.mainGuest.id !== userId) {
+            throw new ForbiddenException('Это не ваше бронирование');
+        }
+
+        return reservation;
+    }
+
+    // ======================== CREATE ========================
+
+    async create(dto: CreateReservationDto, userId: string) {
+        const checkIn = new Date(dto.checkInDate);
+        const checkOut = new Date(dto.checkOutDate);
+
+        if (checkOut <= checkIn) {
+            throw new BadRequestException(
+                'Дата выезда должна быть позже даты заезда',
+            );
+        }
+
+        const room = await this.roomsRepository.findOne({
+            where: { id: dto.roomId },
+            relations: {
+                roomsType: true,
+                roomsStatus: true,
+                amenities: true,
+            },
+        });
+
+        if (!room) {
+            throw new NotFoundException('Номер не найден');
+        }
+
+        if (room.roomsStatus.id === 3) {
+            throw new BadRequestException('Номер находится на обслуживании');
+        }
+
+        if (dto.numberOfGuests > room.capacity) {
+            throw new BadRequestException(
+                `Вместимость номера: ${room.capacity}. Нельзя заселить ${dto.numberOfGuests} гостей`,
+            );
+        }
+
+        // Проверка на пересечение дат с активными бронями
+        const conflictingReservation = await this.reservationRepository.findOne(
+            {
+                where: {
+                    room: { id: room.id },
+                    reservationStatus: { id: In([1, 2, 3]) },
+                    checkInDate: LessThanOrEqual(checkOut),
+                    checkOutDate: MoreThanOrEqual(checkIn),
+                },
+            },
+        );
+
+        if (conflictingReservation) {
+            throw new BadRequestException('Номер занят в выбранные даты');
+        }
+
+        const mainGuest = await this.usersRepository.findOneBy({ id: userId });
+        if (!mainGuest) {
+            throw new NotFoundException('Пользователь не найден');
+        }
+
+        let guests: Users[] = [];
+        if (dto.guestIds && dto.guestIds.length > 0) {
+            guests = await this.usersRepository.findBy({
+                id: In(dto.guestIds),
+            });
+        }
+
+        const pendingStatus =
+            await this.reservationStatusRepository.findOneByOrFail({ id: 1 });
+
+        const nights = Math.ceil(
+            (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24),
+        );
+        const totalPrice = room.pricePerNight * nights;
+
+        const reservation = this.reservationRepository.create({
+            room,
+            mainGuest,
+            guests,
+            checkInDate: checkIn,
+            checkOutDate: checkOut,
+            numberOfGuests: dto.numberOfGuests,
+            totalPrice,
+            specialRequests: dto.specialRequests,
+            reservationStatus: pendingStatus,
+        });
+
+        return this.reservationRepository.save(reservation);
+    }
+
+    // ======================== ДЕЙСТВИЯ СО СТАТУСАМИ ========================
+
+    async confirm(id: string) {
+        const reservation = await this.findById(id);
+        const confirmedStatus =
+            await this.reservationStatusRepository.findOneByOrFail({ id: 2 });
+        reservation.reservationStatus = confirmedStatus;
+        return this.reservationRepository.save(reservation);
+    }
+
+    async checkIn(id: string) {
+        const reservation = await this.findById(id);
+
+        if (reservation.reservationStatus.id !== 2) {
+            throw new BadRequestException(
+                'Бронирование должно быть подтверждено перед заселением',
+            );
+        }
+
+        const checkedInStatus =
+            await this.reservationStatusRepository.findOneByOrFail({ id: 3 });
+        reservation.reservationStatus = checkedInStatus;
+
+        await this.reservationRepository.save(reservation);
+
+        // Меняем статус номера на "Занят"
+        await this.roomsService.setRoomOccupied(reservation.room.id);
+
+        return reservation;
+    }
+
+    async checkOut(id: string) {
+        const reservation = await this.findById(id);
+
+        if (reservation.reservationStatus.id !== 3) {
+            throw new BadRequestException(
+                'Бронирование должно быть в статусе "Заселено" для выселения',
+            );
+        }
+
+        const checkedOutStatus =
+            await this.reservationStatusRepository.findOneByOrFail({ id: 4 });
+        reservation.reservationStatus = checkedOutStatus;
+
+        await this.reservationRepository.save(reservation);
+
+        // Меняем статус номера на "Доступен"
+        await this.roomsService.setRoomAvailable(reservation.room.id);
+
+        return reservation;
+    }
+
+    async cancel(id: string, dto: CancelReservationDto, userId?: string) {
+        const reservation = await this.findById(id, userId);
+
+        if (reservation.reservationStatus.id === 4) {
+            throw new BadRequestException(
+                'Нельзя отменить уже выселенное бронирование',
+            );
+        }
+
+        if (reservation.reservationStatus.id === 5) {
+            throw new BadRequestException('Бронирование уже отменено');
+        }
+
+        const wasCheckedIn = reservation.reservationStatus.id === 3;
+
+        const cancelledStatus =
+            await this.reservationStatusRepository.findOneByOrFail({ id: 5 });
+        reservation.reservationStatus = cancelledStatus;
+        reservation.cancellationReason = dto.cancellationReason;
+
+        await this.reservationRepository.save(reservation);
+
+        // Освобождаем номер, если были заселены
+        if (wasCheckedIn) {
+            await this.roomsService.setRoomAvailable(reservation.room.id);
+        }
+
+        return reservation;
+    }
+
+    async update(id: string, dto: UpdateReservationDto) {
+        const reservation = await this.findById(id);
+
+        if (dto.numberOfGuests !== undefined) {
+            if (dto.numberOfGuests > reservation.room.capacity) {
+                throw new BadRequestException(
+                    `Вместимость номера: ${reservation.room.capacity}. Нельзя заселить ${dto.numberOfGuests} гостей`,
+                );
+            }
+            reservation.numberOfGuests = dto.numberOfGuests;
+        }
+
+        if (dto.guestIds !== undefined) {
+            const guests = await this.usersRepository.findBy({
+                id: In(dto.guestIds),
+            });
+            reservation.guests = guests;
+        }
+
+        if (dto.specialRequests !== undefined) {
+            reservation.specialRequests = dto.specialRequests;
+        }
+
+        return this.reservationRepository.save(reservation);
+    }
+}
+services:
+    postgres-diplom-otel:
+        image: postgres:15
+        container_name: postgres-diplom-otel-db
+        environment:
+            POSTGRES_DB: diplom_otel
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+        ports:
+            - '5433:5432'
+        volumes:
+            - postgres_diplom_otel_data:/var/lib/postgresql/data
+
+volumes:
+    postgres_diplom_otel_data:
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { join } from 'path';
+import { AuthModule } from './auth/auth.module';
+import { DocumentsModule } from './documents/documents.module';
+import { ReservationsModule } from './reservations/reservations.module';
+import { ReportsModule } from './reports/reports.module';
+import { RoomsModule } from './rooms/rooms.module';
+import { SeedModule } from './seed/seed.module';
+import { UserRoleModule } from './userRole/userRole.module';
+
+@Module({
+    imports: [
+        ConfigModule.forRoot({
+            isGlobal: true,
+            envFilePath: '.env', // указывает на файл .env в корне проекта
+        }),
+        TypeOrmModule.forRootAsync({
+            imports: [ConfigModule],
+            useFactory: (configService: ConfigService) => ({
+                type: 'postgres',
+                host: 'localhost',
+                port: 5433,
+                username: 'postgres',
+                password: 'postgres',
+                database: 'diplom_otel',
+                entities: [__dirname + '/**/entities/**/*.entity.{ts,js}'],
+                synchronize: true,
+            }),
+            inject: [ConfigService],
+        }),
+        ServeStaticModule.forRoot({
+            rootPath: join(__dirname, '..', 'uploads'),
+            serveRoot: '/uploads', // URL путь
+        }),
+        AuthModule,
+        SeedModule,
+        DocumentsModule,
+        UserRoleModule,
+        RoomsModule,
+        ReservationsModule,
+        ReportsModule,
+    ],
+})
+export class AppModule {}
+import { ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+    const app = await NestFactory.create(AppModule);
+
+    app.enableCors({ origin: true });
+
+    app.useGlobalPipes(
+        new ValidationPipe({
+            whitelist: true, // Удаляет все неописанные поля
+            forbidNonWhitelisted: false, // Выбрасывает ошибку для неизвестных полей
+            transform: true,
+            transformOptions: {
+                exposeUnsetFields: false,
+                enableImplicitConversion: true,
+            },
+        }),
+    );
+
+    // Swagger виден только если это не прод
+    const config = new DocumentBuilder()
+        .setTitle('Diplom')
+        .setDescription('')
+        .setVersion('1.0')
+        .addApiKey(
+            {
+                type: 'apiKey',
+                name: 'Authorization',
+                in: 'header',
+                description: 'Enter your token',
+            },
+            'X-AUTH-TOKEN',
+        )
+        .build();
+    const documentFactory = () => SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, documentFactory);
+    await app.listen(process.env.PORT ?? 3000);
+}
+bootstrap();
