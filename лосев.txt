@@ -1,0 +1,441 @@
+
+@Injectable()
+export class AuthGuard implements CanActivate {
+  constructor(private jwtService: JwtService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const token = this.extractTokenFromHeader(request);
+    if (!token) {
+      throw new UnauthorizedException();
+    }
+    try {
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: jwtConstants.secret,
+      });
+      request['user'] = payload;
+    } catch {
+      throw new UnauthorizedException();
+    }
+    return true;
+  }
+
+  private extractTokenFromHeader(request: Request): string | undefined {
+    const [type, token] = request.headers.authorization?.split(' ') ?? [];
+    return type === 'Bearer' ? token : undefined;
+  }
+}
+
+@Injectable()
+export class SeedService {
+    constructor(
+        @InjectRepository(UserRoleType)
+        private readonly userRoleTypeRepository: Repository<UserRoleType>,
+        @InjectRepository(Producers)
+        private readonly producersRepository: Repository<Producers>,
+        @InjectRepository(ProductsCategory)
+        private readonly productsCategoryRepository: Repository<ProductsCategory>,
+        @InjectRepository(OrdersStatus)
+        private readonly ordersStatusRepository: Repository<OrdersStatus>,
+        @InjectRepository(Users)
+        private readonly usersRepository: Repository<Users>,
+    ) {
+        this.runSeeds();
+    }
+
+    async runSeeds() {
+        await this.userRoleType();
+        // await this.producers();
+        // await this.productsCategory();
+        await this.ordersStatus();
+        await this.baseUser();
+    }
+
+    async baseUser() {
+        const existUser = await this.usersRepository.findOneBy({
+            email: 'baseMail@mail.ru',
+        });
+        if (existUser) return;
+
+        const baseRole = await this.userRoleTypeRepository.findOneBy({ id: 2 });
+        if (!baseRole) return;
+        await this.usersRepository.save(
+            this.usersRepository.create({
+                email: 'baseMail@mail.ru',
+                name: 'baseName',
+                surname: 'baseSurname',
+                password:
+                    '$2b$12$Uc3bPu7UG9ITKShsK5DibOpz6ZS/Eo5Vi9SS6xbjBkoqGUZe9oWYe', // string
+                phone: '+79999999999',
+                roleType: baseRole, // делаю его сразу админом
+            }),
+        );
+    }
+
+    async ordersStatus() {
+        await this.ordersStatusRepository.save([
+            this.ordersStatusRepository.create({
+                id: 1,
+                name: 'Оформлен',
+                color: '#2196F3', // Синий
+                description: 'Заказ оформлен, ожидает обработки',
+            }),
+            this.ordersStatusRepository.create({
+                id: 2,
+                name: 'Обработан',
+                color: '#4CAF50', // Зеленый
+                description: 'Заказ обработан, передан на склад',
+            }),
+            this.ordersStatusRepository.create({
+                id: 3,
+                name: 'Готов к выдаче',
+                color: '#FF9800', // Оранжевый
+                description: 'Заказ собран и готов к выдаче в магазине',
+            }),
+            this.ordersStatusRepository.create({
+                id: 4,
+                name: 'Выдан',
+                color: '#9C27B0', // Фиолетовый
+                description: 'Заказ выдан покупателю',
+            }),
+            this.ordersStatusRepository.create({
+                id: 5,
+                name: 'Отменен',
+                color: '#F44336', // Красный
+                description: 'Заказ отменен',
+            }),
+        ]);
+    }
+
+    async producers() {
+        for (const producer of producersSeed) {
+            const existProducer = await this.producersRepository.findOneBy({
+                name: producer.name,
+            });
+            if (existProducer) continue;
+            await this.producersRepository.save(
+                this.producersRepository.create(producer),
+            );
+        }
+    }
+
+    async productsCategory() {
+        for (const category of categoriesSeed) {
+            const existCategory =
+                await this.productsCategoryRepository.findOneBy({
+                    name: category.name,
+                });
+            if (existCategory) continue;
+            await this.productsCategoryRepository.save(
+                this.productsCategoryRepository.create(category),
+            );
+        }
+    }
+
+    async userRoleType() {
+        await this.userRoleTypeRepository.save([
+            this.userRoleTypeRepository.create({
+                id: 1,
+                name: 'user',
+            }),
+            this.userRoleTypeRepository.create({
+                id: 2,
+                name: 'admin',
+            }),
+        ]);
+    }
+}
+
+export const producersSeed: Partial<Producers>[] = [
+    {
+        name: 'Samsung Electronics',
+        description:
+            'Южнокорейский технологический гигант, мировой лидер в производстве смартфонов, телевизоров, бытовой техники и полупроводников. Компания известна инновационными дисплеями QLED и Neo QLED, флагманской линейкой Galaxy S и складными устройствами Galaxy Z. Особое внимание уделяется экосистеме SmartThings для умного дома, объединяющей все устройства бренда в единую сеть с голосовым управлением. Производственные мощности сертифицированы по стандартам ISO 14001.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Apple',
+        description:
+            'Американская корпорация, задающая стандарты в индустрии персональной электроники и программного обеспечения. Производитель культовых iPhone с чипами A-серии, компьютеров Mac на процессорах M-серии с рекордной энергоэффективностью, планшетов iPad и умных часов Apple Watch. Экосистема компании обеспечивает бесшовную интеграцию между устройствами через iCloud, Continuity и Handoff. Особое внимание уделяется конфиденциальности пользователей и экологической ответственности.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Sony Corporation',
+        description:
+            'Японский конгломерат с богатейшей историей инноваций в аудио-видео технике, игровых консолях и профессиональном оборудовании. Флагманские телевизоры Bravia с технологией Cognitive Processor XR обеспечивают непревзойденное качество изображения. Игровая консоль PlayStation 5 установила новые стандарты производительности с SSD-накопителем и тактильной отдачей контроллера DualSense. Аудионаправление включает премиальные наушники WH-1000XM с лучшим в классе шумоподавлением.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'LG Electronics',
+        description:
+            'Корейский производитель, пионер в области OLED-телевизоров и инновационной бытовой техники. Компания первой представила коммерческие OLED-панели большого формата и продолжает лидировать с технологиями evo и EX. Линейка бытовой техники включает стиральные машины с прямым приводом Inverter Direct Drive, холодильники InstaView с прозрачной дверцей и системы кондиционирования с ионизацией воздуха. Умная платформа ThinQ обеспечивает интеллектуальное управление домом с машинным обучением.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Xiaomi',
+        description:
+            'Китайская технологическая компания, демократизирующая доступ к передовым технологиям через широкий ассортимент устройств по доступным ценам. Экосистема Mi включает смартфоны с камерами Leica, умные браслеты Mi Band с длительной автономностью, роботы-пылесосы с лидарной навигацией и обширную линейку устройств для умного дома. Философия бренда основана на концепции "инновации для всех" с минимальной маржинальностью и максимальным качеством в своем ценовом сегменте.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Huawei Technologies',
+        description:
+            'Китайский телекоммуникационный гигант, ведущий разработчик 5G-технологий и производитель премиальной электроники. Собственная операционная система HarmonyOS обеспечивает无缝ную интеграцию между смартфонами, планшетами, ноутбуками и умными часами. Флагманская серия P известна революционными камерами с оптикой Leica и вычислительной фотографией. Компания активно развивает направление носимых устройств и аудиотехники с передовыми кодеками передачи звука.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Dell Technologies',
+        description:
+            'Американский производитель компьютерной техники, занимающий лидирующие позиции в корпоративном и потребительском сегментах. Линейка XPS устанавливает стандарты безрамочных дисплеев и компактности, Alienware предлагает бескомпромиссную игровую производительность, а мониторы UltraSharp с заводской калибровкой востребованы среди профессионалов. Серверные решения PowerEdge и системы хранения данных составляют основу инфраструктуры тысяч компаний по всему миру.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Lenovo Group',
+        description:
+            'Китайская multinational компания, крупнейший производитель персональных компьютеров в мире. Легендарная серия ThinkPad славится непревзойденной надежностью, эргономичной клавиатурой и прочными корпусами из магниевого сплава. Игровое направление Legion предлагает мощные ноутбуки с эффективным охлаждением ColdFront. Линейка Yoga пионерствует в сегменте трансформеров с шарниром на 360 градусов. Планшеты Tab с премиальными OLED-дисплеями составляют конкуренцию флагманам рынка.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'ASUS',
+        description:
+            'Тайваньский производитель, известный инновационными материнскими платами, видеокартами и премиальными ноутбуками. Серия Republic of Gamers задает стандарты в игровом сегменте с экстремальным разгоном и продвинутыми системами охлаждения. ZenBook представляет ультрабуки премиум-класса с OLED-дисплеями и уникальным дизайном. Линейка ProArt ориентирована на творческих профессионалов с сертифицированными дисплеями Pantone и высокой точностью цветопередачи для работы с графикой и видео.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'HP Inc.',
+        description:
+            'Один из старейших производителей компьютерной техники с богатой историей инноваций. Принтеры и МФУ HP LaserJet и OfficeJet являются стандартом в офисной печати с технологией мгновенного включения. Ноутбуки Spectre представляют ультрапремиальный сегмент с корпусами из CNC-обработанного алюминия и драгоценными акцентами. Игровое подразделение OMEN предлагает мощные решения с акцентом на кастомизацию и апгрейд. Мониторы серии E обеспечивают эргономику и комфорт для корпоративных пользователей.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Acer Inc.',
+        description:
+            'Тайваньская компания, предлагающая широкий спектр компьютерной техники от бюджетных решений до премиальных устройств. Серия Predator ориентирована на киберспортсменов с рекордной частотой обновления экранов и агрессивным дизайном. Концептуальные устройства ConceptD созданы для дизайнеров и видеомонтажеров. Хромбуки Acer занимают лидирующие позиции в образовательном сегменте благодаря durability и времени автономной работы. Технологии SpatialLabs открывают эру трехмерных дисплеев без очков для игр и профессиональных приложений.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'MSI',
+        description:
+            'Тайваньский производитель, сфокусированный на игровом железе и профессиональных решениях для контент-мейкеров. Игровые ноутбуки серии Raider и Stealth сочетают максимальную производительность с относительно компактными размерами. Материнские платы MEG и MPG предлагают продвинутые возможности разгона и кастомизации. Мониторы с квантовыми точками и частотой обновления до 360 Гц ориентированы на киберспорт. Линейка Creator обеспечивает точность цветопередачи Delta E < 2 для профессиональной работы с контентом.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Razer Inc.',
+        description:
+            'Американо-сингапурский бренд, создающий премиальные игровые устройства и периферию с узнаваемой эстетикой. Ноутбуки Blade установили стандарт тонких игровых лэптопов с aluminum unibody корпусом. Мыши DeathAdder с оптическими сенсорами Focus+ обеспечивают непревзойденную точность. Клавиатуры Huntsman с оптомеханическими переключателями предлагают мгновенный отклик. Экосистема Chroma RGB позволяет синхронизировать подсветку сотен устройств с играми и приложениями. Контроллеры Kishi превращают смартфоны в портативные консоли.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Logitech International',
+        description:
+            'Швейцарский производитель компьютерной периферии с акцентом на эргономику и продуктивность. Мыши серии MX Master с электромагнитным колесом прокрутки MagSpeed стали стандартом для профессионалов. Клавиатуры Ergo с split-дизайном сертифицированы ассоциациями эргономистов. Веб-камеры Brio с разрешением 4K и технологией RightLight обеспечивают профессиональное качество видеоконференций. Игровое подразделение Logitech G предлагает технологию беспроводной связи Lightspeed с задержкой менее 1 мс.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Corsair',
+        description:
+            'Американский бренд, производящий высокопроизводительные компоненты и периферию для энтузиастов и геймеров. Оперативная память Dominator Platinum с алюминиевыми радиаторами DHX обеспечивает стабильный разгон. Блоки питания с сертификацией 80 PLUS Titanium гарантируют эффективность свыше 94%. Системы жидкостного охлаждения iCUE с магнитной левитацией помп работают практически бесшумно. Клавиатуры K100 с оптико-механическими переключателями OPX и частотой опроса 4000 Гц предлагают непревзойденный отклик.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'HyperX',
+        description:
+            'Игровое подразделение Kingston Technology, специализирующееся на качественной периферии с отличным соотношением цены и возможностей. Гарнитуры Cloud с фирменными 53-мм драйверами признаны одними из самых комфортных для длительных игровых сессий. Механические клавиатуры Alloy Origins с фирменными переключателями HyperX Red предлагают линейный отклик с ресурсом 80 миллионов нажатий. Коврики Fury S Pro с прошитыми краями обеспечивают идеальное скольжение. Микрофоны QuadCast с RGB-подсветкой популярны среди стримеров.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'SteelSeries',
+        description:
+            'Датский производитель киберспортивной периферии, основанный в 2001 году. Гарнитуры Arctis с лыжным оголовьем и динамиками Hi-Res Audio обеспечивают исключительный комфорт и качество звука. Мыши Prime с оптическими магнитными переключателями Prestige OM гарантируют мгновенный отклик без дребезга контактов. Клавиатуры Apex Pro с регулируемыми механическими переключателями OmniPoint позволяют настраивать точку срабатывания для каждой клавиши. Программное обеспечение GG включает Sonar для профессиональной настройки звука.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Dyson',
+        description:
+            'Британская компания, революционизировавшая рынок бытовой техники инженерными инновациями. Циклонные пылесосы с технологией Radial Root Cyclone генерируют центробежную силу до 79 000g, эффективно отделяя микроскопическую пыль. Фены Supersonic с цифровым двигателем V9 регулируют температуру 40 раз в секунду для защиты волос. Очистители воздуха с датчиками формальдегида и HEPA-фильтрами H13 задерживают 99.95% частиц размером до 0.1 микрона. Беспроводные пылесосы с лазерным обнаружением пыли делают уборку наглядной.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'iRobot',
+        description:
+            'Американский пионер в области роботизированной уборки, создатель легендарной серии Roomba. Роботы-пылесосы используют систему навигации iAdapt с визуальной локализацией и картографированием помещений. Технология Imprint Smart Mapping позволяет роботу запоминать план дома и убирать по расписанию конкретные комнаты. Модели с док-станцией Clean Base автоматически опорожняют контейнер в мешок объемом на 60 дней. Роботы Braava для влажной уборки используют технологию Precision Jet Spray.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Bosch',
+        description:
+            'Немецкий концерн с более чем 130-летней историей, символ надежности и инженерного совершенства. Стиральные машины с двигателем EcoSilence Drive обеспечивают бесшумную работу с гарантией 10 лет. Посудомоечные машины с технологией Zeolith используют минерал для эффективной сушки посуды. Холодильники VitaFresh поддерживают оптимальную влажность для длительного хранения продуктов. Кухонные комбайны OptiMUM с мощностью 1500 Вт и планетарным смешиванием заменяют несколько устройств. Аккумуляторные инструменты Professional 18V System объединены единой платформой.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Philips',
+        description:
+            'Нидерландская компания с фокусом на здоровье и благополучие через технологические решения. Электрические зубные щетки Sonicare с технологией sonic wave совершают до 62 000 движений в минуту, удаляя на 10 раз больше налета. Системы очистки воздуха с датчиками AeraSense в реальном времени отображают уровень PM2.5. Кофемашины LatteGo готовят капучино с нежной молочной пеной одним нажатием. Утюги PerfectCare с технологией OptimalTEMP исключают риск пригорания ткани. Лампы Hue создают персонализированное освещение с 16 миллионами оттенков.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'NVIDIA',
+        description:
+            'Американская корпорация, определяющая будущее графических технологий и искусственного интеллекта. Видеокарты GeForce RTX с архитектурой Ada Lovelace поддерживают трассировку лучей в реальном времени и технологию DLSS 3.5 для революционной производительности. Профессиональные ускорители Quadro RTX сертифицированы для CAD и 3D-моделирования. Платформа Studio включает драйверы Creator Ready для творческих приложений. Технология G-SYNC Ultimate обеспечивает плавный геймплей без разрывов. Чипы Tegra используются в автомобильных системах автопилота и робототехнике.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'AMD',
+        description:
+            'Американский производитель процессоров и видеокарт, вернувший конкуренцию на рынок высокопроизводительных вычислений. Процессоры Ryzen на архитектуре Zen 4 с технологией 3D V-Cache предлагают рекордную производительность в играх. Видеокарты Radeon RX с архитектурой RDNA 3 обеспечивают отличную эффективность. Технология Smart Access Memory позволяет процессору полностью использовать видеопамять. Платформа AM5 с поддержкой PCIe 5.0 и DDR5 гарантирует перспективность. Threadripper PRO доминирует в рабочих станциях с 96 ядрами.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Intel Corporation',
+        description:
+            'Американская корпорация, создавшая индустрию микропроцессоров и продолжающая инновации. Процессоры Core 14-го поколения с гибридной архитектурой Performance и Efficiency ядер оптимизируют нагрузку. Технология Thunderbolt 4 обеспечивает скорость передачи 40 Гбит/с через USB-C. Игровые видеокарты Arc с аппаратным кодированием AV1 предлагают конкурентоспособную производительность. Xeon Scalable процессоры поддерживают до 8 сокетов для enterprise-решений. Wi-Fi 6E с диапазоном 6 ГГц обеспечивает рекордные скорости беспроводной связи.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Seagate Technology',
+        description:
+            'Американский производитель систем хранения данных с полувековой историей. Жесткие диски IronWolf Pro оптимизированы для NAS-систем с технологией AgileArray и датчиками вращательной вибрации. Внешние накопители Backup Plus с Recovery Services включают услуги восстановления данных. Игровые SSD FireCuda с PCIe Gen4 обеспечивают скорость чтения до 7300 МБ/с. Корпоративные диски Exos с гелиевым заполнением достигают емкости 24 ТБ. Система Lyve объединяет edge-хранение и облачные сервисы.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Western Digital',
+        description:
+            'Американский гигант в области хранения данных с брендами WD и SanDisk. SSD серии WD_BLACK обеспечивают скорости до 7300 МБ/с для геймеров. Внешние диски My Passport с аппаратным шифрованием AES-256 защищают конфиденциальные данные. Карты памяти SanDisk Extreme PRO с V90 обеспечивают запись видео 8K. NAS-диски Red Pro с технологией NASware 3.0 оптимизированы для круглосуточной работы. Портативные SSD SanDisk Professional Pro-G40 с Thunderbolt 3 достигают скорости 2700 МБ/с.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'TP-Link',
+        description:
+            'Китайский производитель сетевого оборудования, мировой лидер в сегменте потребительских WiFi-устройств. Роутеры Archer с WiFi 6E и технологией Beamforming формируют направленный сигнал. Mesh-системы Deco с AI-Driven Mesh обеспечивают бесшовное покрытие до 700 м². Коммутаторы JetStream с управлением через Omada SDN подходят для корпоративного использования. Powerline-адаптеры используют электропроводку для передачи данных. Умные розетки Tapo и камеры видеонаблюдения интегрируются в экосистему умного дома.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Netgear',
+        description:
+            'Американская компания, специализирующаяся на премиальном сетевом оборудовании. Игровые роутеры Nighthawk Pro Gaming с DumaOS 3.0 минимизируют пинг и лаг. Орбитальные Mesh-системы Orbi с выделенным backhaul-каналом обеспечивают скорость до 10.8 Гбит/с. Коммутаторы для бизнеса с Multi-Gigabit портами поддерживают растущие требования пропускной способности. Сетевые хранилища ReadyNAS с автоматическим резервированием защищают бизнес-данные. Хотспоты Nighthawk M6 с 5G обеспечивают скорость до 4 Гбит/с в мобильных сетях.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'Anker Innovations',
+        description:
+            'Китайская компания, создающая умные зарядные устройства и аксессуары с передовыми технологиями. Зарядные станции PowerHouse с аккумуляторами LiFePO4 обеспечивают до 2048 Вт·ч для кемпинга. Кабели PowerLine с кевларовым армированием выдерживают 35 000 сгибаний. Зарядки GaNPrime с нитридом галлия компактнее и эффективнее кремниевых аналогов. Аудиобренд Soundcore с технологией HearID персонализирует звук под слух пользователя. Проекторы Nebula с Android TV создают кинотеатр в любом месте.',
+        avatar: 'uploads/default-avatar.png',
+    },
+    {
+        name: 'JBL',
+        description:
+            'Американский аудиобренд с 75-летней историей, часть Harman International. Портативные колонки Flip и Charge с технологией PartyBoost объединяют до 100 устройств. Наушники Tour с адаптивным шумоподавлением и персональным звуком. Саундбары Bar с Dolby Atmos и беспроводным сабвуфером создают кинематографический звук. Профессиональные мониторы серии 3 для студийной работы. Автомобильная акустика Stadium с технологией Plus One увеличивает площадь диффузора на 30%.',
+        avatar: 'uploads/default-avatar.png',
+    },
+];
+
+@Entity()
+export class ProductsPriceHistory {
+    @PrimaryGeneratedColumn('uuid')
+    id: number;
+
+    @ManyToOne(() => Products)
+    @JoinColumn()
+    products: Products;
+
+    @Column('decimal', { precision: 10, scale: 2 })
+    price: number;
+
+    @CreateDateColumn()
+    createdAt: Date;
+}
+
+@EventSubscriber()
+export class ProductSubscriber implements EntitySubscriberInterface<Products> {
+    listenTo() {
+        return Products;
+    }
+
+    async afterUpdate(event: UpdateEvent<Products>) {
+        // Проверяем, изменилась ли цена
+        if (
+            event.entity &&
+            event.databaseEntity &&
+            event.entity.price !== event.databaseEntity.price
+        ) {
+            const product = event.entity;
+
+            // Создаем запись в истории цен
+            const priceHistoryRepository =
+                event.manager.getRepository<ProductsPriceHistory>(
+                    ProductsPriceHistory,
+                );
+
+            const priceHistory = priceHistoryRepository.create({
+                products: { id: product.id },
+                price: product.price,
+            });
+
+            await priceHistoryRepository.save(priceHistory);
+        }
+    }
+
+    async afterInsert(event: InsertEvent<Products>) {
+        // При создании товара также сохраняем начальную цену
+        const product = event.entity;
+
+        const priceHistoryRepository =
+            event.manager.getRepository<ProductsPriceHistory>(
+                ProductsPriceHistory,
+            );
+
+        const priceHistory = priceHistoryRepository.create({
+            products: { id: product.id },
+            price: product.price,
+        });
+
+        await priceHistoryRepository.save(priceHistory);
+
+        console.log(
+            `Создан товар ${product.id} с начальной ценой ${product.price}`,
+        );
+    }
+}
+
+@Entity()
+export class Products {
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
+
+    // Категория
+    @ManyToMany(() => ProductsCategory)
+    @JoinTable({ name: 'products_and_products_category' })
+    productsCategory: ProductsCategory[];
+
+    // Что-то типа бренда или производителя
+    @ManyToOne(() => Producers)
+    @JoinColumn()
+    producers: Producers;
+
+    @Column({ length: 200 })
+    name: string;
+
+    @Column({ type: 'text', nullable: true })
+    description: string;
+
+    @Column('decimal', { precision: 10, scale: 2 })
+    price: number;
+
+    @Column({ default: 0 })
+    stockQuantity: number;
+
+    @Column('simple-array', { nullable: true })
+    images: string[]; // Массив URL изображений
+
+    @OneToMany(() => ProductsPriceHistory, (history) => history.products)
+    priceHistory: ProductsPriceHistory[];
+
+    @CreateDateColumn()
+    createdAt: Date;
+
+    @UpdateDateColumn()
+    updatedAt: Date;
+
+    @DeleteDateColumn()
+    deleted_at: Date;
+}
