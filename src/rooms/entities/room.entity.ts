@@ -33,6 +33,9 @@ export class Rooms {
     @Column('decimal', { precision: 10, scale: 2 })
     pricePerNight: number;
 
+    @Column('float', { default: 0 })
+    rating: number;
+
     @Column({ nullable: true })
     floor: number;
 
@@ -46,7 +49,7 @@ export class Rooms {
     description: string;
 
     @ManyToMany(() => Amenities)
-    @JoinTable({name: "rooms_and_amenities"})
+    @JoinTable({ name: 'rooms_and_amenities' })
     amenities: Amenities[];
 
     @Column('simple-array', { nullable: true })

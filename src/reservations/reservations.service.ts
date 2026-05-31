@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from 'src/auth/entities/users.entity';
 import { Rooms } from 'src/rooms/entities/room.entity';
 import { RoomsService } from 'src/rooms/rooms.service';
-import { In, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CancelReservationDto } from './dto/cancel-reservation.dto';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
@@ -17,6 +17,9 @@ import { Reservation } from './entities/reservation.entity';
 
 @Injectable()
 export class ReservationsService {
+    private readonly blockedReservationStatusIds = [2, 3];
+    private readonly maintenanceRoomStatusId = 3;
+
     constructor(
         @InjectRepository(Reservation)
         private readonly reservationRepository: Repository<Reservation>,
@@ -29,6 +32,44 @@ export class ReservationsService {
 
         private readonly roomsService: RoomsService,
     ) {}
+
+    private async ensureRoomCanBeReserved(
+        room: Rooms,
+        checkIn: Date,
+        checkOut: Date,
+        ignoreReservationId?: string,
+    ) {
+        if (room.roomsStatus.id === this.maintenanceRoomStatusId) {
+            throw new BadRequestException(
+                'Номер находится на обслуживании',
+            );
+        }
+
+        const conflictQuery = this.reservationRepository
+            .createQueryBuilder('reservation')
+            .innerJoin('reservation.room', 'room')
+            .innerJoin('reservation.reservationStatus', 'reservationStatus')
+            .where('room.id = :roomId', { roomId: room.id })
+            .andWhere('reservationStatus.id IN (:...statusIds)', {
+                statusIds: this.blockedReservationStatusIds,
+            })
+            .andWhere('reservation.checkInDate < :checkOut', { checkOut })
+            .andWhere('reservation.checkOutDate > :checkIn', { checkIn });
+
+        if (ignoreReservationId) {
+            conflictQuery.andWhere('reservation.id != :ignoreReservationId', {
+                ignoreReservationId,
+            });
+        }
+
+        const conflictingReservation = await conflictQuery.getOne();
+
+        if (conflictingReservation) {
+            throw new BadRequestException(
+                'Номер занят в выбранные даты',
+            );
+        }
+    }
 
     // ======================== GET ========================
 
@@ -130,31 +171,13 @@ export class ReservationsService {
             throw new NotFoundException('Номер не найден');
         }
 
-        if (room.roomsStatus.id === 3) {
-            throw new BadRequestException('Номер находится на обслуживании');
-        }
-
         if (dto.numberOfGuests > room.capacity) {
             throw new BadRequestException(
                 `Вместимость номера: ${room.capacity}. Нельзя заселить ${dto.numberOfGuests} гостей`,
             );
         }
 
-        // Проверка на пересечение дат с активными бронями
-        const conflictingReservation = await this.reservationRepository.findOne(
-            {
-                where: {
-                    room: { id: room.id },
-                    reservationStatus: { id: In([1, 2, 3]) },
-                    checkInDate: LessThanOrEqual(checkOut),
-                    checkOutDate: MoreThanOrEqual(checkIn),
-                },
-            },
-        );
-
-        if (conflictingReservation) {
-            throw new BadRequestException('Номер занят в выбранные даты');
-        }
+        await this.ensureRoomCanBeReserved(room, checkIn, checkOut);
 
         const mainGuest = await this.usersRepository.findOneBy({ id: userId });
         if (!mainGuest) {
@@ -195,6 +218,13 @@ export class ReservationsService {
 
     async confirm(id: string) {
         const reservation = await this.findById(id);
+        await this.ensureRoomCanBeReserved(
+            reservation.room,
+            reservation.checkInDate,
+            reservation.checkOutDate,
+            reservation.id,
+        );
+
         const confirmedStatus =
             await this.reservationStatusRepository.findOneByOrFail({ id: 2 });
         reservation.reservationStatus = confirmedStatus;
@@ -209,6 +239,13 @@ export class ReservationsService {
                 'Бронирование должно быть подтверждено перед заселением',
             );
         }
+
+        await this.ensureRoomCanBeReserved(
+            reservation.room,
+            reservation.checkInDate,
+            reservation.checkOutDate,
+            reservation.id,
+        );
 
         const checkedInStatus =
             await this.reservationStatusRepository.findOneByOrFail({ id: 3 });
