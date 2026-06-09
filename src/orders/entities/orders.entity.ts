@@ -1,6 +1,7 @@
 import { Users } from 'src/auth/entities/users.entity';
 import {
     Column,
+    CreateDateColumn,
     Entity,
     JoinColumn,
     ManyToOne,
@@ -31,4 +32,7 @@ export class Orders {
 
     @Column('decimal', { precision: 10, scale: 2 })
     totalValue: number;
+
+    @CreateDateColumn()
+    created_at: Date;
 }
